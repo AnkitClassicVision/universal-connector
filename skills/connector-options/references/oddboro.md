@@ -27,16 +27,20 @@ This table is generated from `tools/kit/oddboro.py`; a test keeps the two equal.
 
 Fork builds with the Pi runner fail the whole run on any granted tool whose full name is over 64 characters.
 
+## Keyring preflight
+
+Oddboro keeps a pasted key in the system's secret store: the Keychain on a Mac, the Credential Manager on Windows, and on Linux a Secret Service keyring (GNOME Keyring or KWallet) reached through `secret-tool`. Before adding the service on Linux, run `python tools/oddboro_version.py --version <version> --preflight`: it checks that `secret-tool` is installed and that a keyring answers on the session bus (names only; it reads nothing from the store). If not, the person installs `secret-tool` (package `libsecret-tools` or `libsecret`) and starts and unlocks their keyring.
+
 ## Address rules
 
-- `https://` only, with a publicly trusted certificate. A tailnet route such as `tailscale serve` gives one; never use a public route such as `funnel`.
+- `https://` only, with a publicly trusted certificate. A tailnet route such as `tailscale serve` gives one; never use a public route such as `funnel`. A local `.localhost` proxy with a local authority may not be accepted; see `door-placement.md`.
 - The exact path, with no redirect, no query and no fragment.
-- A short host: keep the host plus the path slug near 25 characters or less, so `mcp__<service id>__<tool>` stays under 64.
+- The service id comes from the address: the lower-case host plus path, each run of characters that are not letters or digits turned into one `-`, with the port and query dropped. `https://door.tailnet-name.ts.net/mcp` gives `door-tailnet-name-ts-net-mcp`. Keep it near 25 characters, so `mcp__<service id>__<tool>` stays under 64. The smoke test and `tools/gotchas.py names --harness oddboro --url <address>` compute it the same way.
 - Header: `Authorization`. Paste the bare key; Oddboro adds `Bearer `.
 
 ## Read only grants
 
-A Read only grant reaches a tool only when it has `readOnlyHint: true`, no `destructiveHint`, and no change word in its name. Oddboro reads only the first page of tools. Removing an Odd's grant can delete the stored key.
+Oddboro's own rule (its `readsOnly`): a Read only grant reaches a tool only when the tool has `readOnlyHint: true`, its `destructiveHint` is not `true` (false or absent is fine), and none of the words of its name is one of Oddboro's 42 change words: add, append, approve, archive, assign, cancel, capture, clear, close, comment, create, delete, destroy, drop, edit, exec, execute, forward, insert, invite, merge, modify, move, patch, post, publish, put, remove, rename, reply, reset, run, save, send, set, share, store, submit, update, upload, upsert, write. A name's words come from splitting camelCase and every run of characters that are not letters or digits, so `createIssue`, `create-issue` and `x_create_issue` all hold "create", and a read tool such as `get_post` is left out too. This kit's smoke tests use the same rule before they call any tool. Oddboro reads only the first page of tools. Removing an Odd's grant can delete the stored key.
 
 ## Smoke test
 
@@ -47,4 +51,4 @@ Manual part (any version), done by the person with the agent guiding:
 3. Grant Read to one Odd.
 4. Run a chat in which that Odd calls one tool. Confirm it answers, and that the Ledger shows no "could not start during a run".
 
-Automated part: `python tools/smoke_harness.py --harness oddboro --url <https address> --key-env <variable> --server-name <service id> --oddboro-version <version>`. If your door edition has its own Oddboro smoke command, run that too.
+Automated part: `python tools/smoke_harness.py --harness oddboro --url <https address> --key-file <Oddboro's key file> --oddboro-version <version>`. With no version it fails and says to update or read the version first. If your door edition has its own Oddboro smoke command, run that too.

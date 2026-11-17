@@ -23,8 +23,8 @@ READ_TOOLS = [
 class FakeDoor:
     def __init__(self, keys=("Qz9FAKEdrv01x",), hosts=("127.0.0.1:8765", "door.tailnet-name.ts.net"), tools=None,
                  page_size=None, delay=0.0, results=None, sse=False, refuse_origin=True, refuse_host=True,
-                 require_key=True, revoked=(), redirect=False):
-        self.redirect = redirect
+                 require_key=True, revoked=(), redirect=False, get_mode="405"):
+        self.redirect, self.get_mode = redirect, get_mode
         self.keys, self.hosts = set(keys), set(hosts)
         self.tools = list(tools if tools is not None else READ_TOOLS)
         self.page_size, self.delay, self.sse = page_size, delay, sse
@@ -32,8 +32,9 @@ class FakeDoor:
         self.refuse_origin, self.refuse_host, self.require_key = refuse_origin, refuse_host, require_key
         self.revoked = set(revoked)
         self.calls: list[str] = []
+        self.called: list[str] = []
 
-    def __call__(self, url, headers, body, timeout):
+    def __call__(self, url, headers, body, timeout, method="POST"):
         h = {k.lower(): v for k, v in headers.items()}
         if self.redirect:
             return 308, {"location": url + "/"}, b""
@@ -46,10 +47,18 @@ class FakeDoor:
         key = auth[7:] if auth.startswith("Bearer ") else None
         if self.require_key and (key not in self.keys or key in self.revoked):
             return 401, {}, b""
+        if method == "GET":
+            if self.get_mode == "stream":
+                return 200, {"content-type": "text/event-stream"}, b""
+            if self.get_mode == "json":
+                return 200, {"content-type": "application/json"}, b"{}"
+            return 405, {}, b""
         msg = json.loads(body)
         if "id" not in msg:
             return 202, {}, b""
         self.calls.append(msg["method"])
+        if msg["method"] == "tools/call":
+            self.called.append((msg.get("params") or {}).get("name"))
         result = self._result(msg)
         if isinstance(result, tuple):
             payload = {"jsonrpc": "2.0", "id": msg["id"], "error": {"code": result[0], "message": "no"}}

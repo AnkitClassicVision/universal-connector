@@ -35,7 +35,7 @@ Work management for tasks, lists and docs. Agents usually read tasks and lists.
 Read the authorized user, then one task.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection clickup --tool <read task tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection clickup --tool <read task tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
 ```
 
 ## Gotchas

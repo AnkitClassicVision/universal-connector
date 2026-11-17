@@ -9,6 +9,7 @@ It does not say how the work is tested. Keep tests out of this file.
 - `manifest-draft.yaml`: the connections, for the door.
 - `harnesses.yaml`: the chosen harnesses.
 - `skills-plan.md`: what happens to each skill.
+- `door-tools.json`: the door's tool names from its docs, as a JSON list (the `--tools` input of `tools/gotchas.py names`).
 
 ## Format
 
@@ -37,7 +38,7 @@ connections:
 
 `harnesses.yaml`: one entry per harness in the checklist, each with `chosen: true` or `false`; for chosen ones, `server_name`, `key_held_by` (env-var, harness-store, keyring, file), `key_env` where used, `read_timeout_s`, `url` (loopback or the https route); for Oddboro also `address`, `kind` and `version`.
 
-`plan.md`: sections Harnesses, Connections (a table), Not connected (each with a reason), Vault, Door placement, Plain-file keys and how they move, Gotcha pre-checks, Owner confirmation.
+`plan.md`: sections Harnesses, Connections (a table), Not connected (each with a reason), Vault, Door placement, Plain-file keys and how they move, Gotcha pre-checks (per chosen harness, the name used and whether every full tool name fits; for Oddboro, the service id derived from its address), Owner confirmation.
 
 `skills-plan.md`: a table of every skill from the inventory with its harness, its location, its class and its decision (connect, carry to which harnesses, or keep).
 

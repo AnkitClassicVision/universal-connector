@@ -36,7 +36,7 @@ DNS, CDN, Workers and security settings. Agents usually read zones, DNS records,
 Run the token verify read, then list one zone.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection cloudflare --tool <list zones tool> --args '{}' --auth-kind api-key --whoami-tool <token verify tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection cloudflare --tool <list zones tool> --args '{}' --auth-kind api-key --whoami-tool <token verify tool>
 ```
 
 ## Gotchas

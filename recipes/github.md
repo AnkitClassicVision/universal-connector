@@ -40,7 +40,7 @@ Draft pull requests are still visible to other people, so they are red, not yell
 Read the authenticated user, then one repository.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection github --tool <read repository tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection github --tool <read repository tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
 ```
 
 ## Gotchas

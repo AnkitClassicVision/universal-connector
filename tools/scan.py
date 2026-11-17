@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -25,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kit import __version__  # noqa: E402
 from kit.core import Collector, Ctx, platform_name  # noqa: E402
 from kit.plugins import all_plugins  # noqa: E402
+from kit.redact import Redactor  # noqa: E402
 from kit.report import GuardTripped, build, guard, markdown, summary  # noqa: E402
 
 
@@ -36,12 +38,45 @@ def make_ctx(args: argparse.Namespace) -> Ctx:
             raise SystemExit("error: --extra takes ID=PATH, for example --extra openmausbot=/path/to/config.json")
         extra.setdefault(key.strip(), []).append(Path(os.path.expanduser(value)))
     projects = [Path(os.path.expanduser(p)).resolve() for p in (args.project or [])] or [Path.cwd()]
-    return Ctx(
+    ctx = Ctx(
         home=Path(os.path.expanduser(args.home)) if args.home else Path.home(),
         env=dict(os.environ), platform=args.platform or platform_name(),
         root=Path(args.root) if args.root else Path("/"), projects=projects,
         follow_projects=not args.no_follow_projects, include_vaults=args.include_vaults, extra=extra,
     )
+    salt_path = Path(os.path.expanduser(args.salt_file)) if args.salt_file else ctx.xdg_config() / "universal-connector" / "hidden-salt"
+    salt, stable = load_salt(salt_path)
+    ctx.redactor = Redactor(salt)
+    if not stable:
+        ctx.notes_for_run.append("Hidden ids are new this run (the salt file could not be kept), so a diff may show them as changed.")
+    for url in args.door_url or []:
+        host = ctx.redactor.host(url)
+        if host:
+            ctx.door_hosts.add(host)
+    return ctx
+
+
+def load_salt(path: Path) -> tuple[bytes, bool]:
+    """A random salt kept owner-only, so hidden ids stay the same from run to run. (salt, kept)."""
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+        try:
+            data = os.read(fd, 256).strip()
+        finally:
+            os.close(fd)
+        if len(data) >= 32:
+            return data, True
+    except OSError:
+        pass
+    salt = secrets.token_hex(32).encode()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(salt + b"\n")
+        return salt, True
+    except OSError:
+        return salt, False
 
 
 def pick(plugins, only: str | None, skip: str | None):
@@ -70,8 +105,10 @@ def run(ctx: Ctx, plugins) -> list[tuple]:
 
 
 def write_private(path: Path, text: str) -> None:
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    """Owner-only, never through a link; an existing file is set back to 0600 before it is written."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        os.fchmod(handle.fileno(), 0o600)
         handle.write(text)
 
 
@@ -84,6 +121,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--project", action="append", help="a project folder to check (repeat); default: the current folder")
     ap.add_argument("--no-follow-projects", action="store_true", help="do not follow project folders named in harness configs")
     ap.add_argument("--extra", action="append", help="ID=PATH: an extra file for a plug-in (openmausbot=..., mcp=...)")
+    ap.add_argument("--door-url", action="append", help="your door's address (repeat for a route): entries for it are expected")
+    ap.add_argument("--salt-file", help="where the owner-only salt for stable hidden ids lives "
+                                        "(default ~/.config/universal-connector/hidden-salt)")
     ap.add_argument("--only", help="comma list of source ids to run")
     ap.add_argument("--skip", help="comma list of source ids to skip")
     ap.add_argument("--home", help=argparse.SUPPRESS)  # tests: a fixture home
@@ -102,15 +142,25 @@ def main(argv: list[str] | None = None) -> int:
                 lines += [f"    {w}" for w in p.where(ctx)]
             sys.stdout.write(guard("\n".join(lines) + "\n"))
             return 0
-        inv = build(ctx, run(ctx, plugins))
+        results = run(ctx, plugins)
+        if ctx.notes_for_run and results:
+            results[0][1].notes.extend(ctx.notes_for_run)
+        inv = build(ctx, results)
         as_json = guard(json.dumps(inv, indent=2, sort_keys=False) + "\n")
         sheet = guard(markdown(inv))
         text = guard(summary(inv))
         if args.out:
             out = Path(args.out)
+            if out.is_symlink():
+                sys.stderr.write("error: --out is a link; give a real folder\n")
+                return 2
             out.mkdir(parents=True, exist_ok=True, mode=0o700)
-            write_private(out / "inventory.json", as_json)
-            write_private(out / "inventory.md", sheet)
+            try:
+                write_private(out / "inventory.json", as_json)
+                write_private(out / "inventory.md", sheet)
+            except OSError:
+                sys.stderr.write("error: could not write the inventory (a file there may be a link); nothing was written through it\n")
+                return 2
             text += f"Wrote {ctx.show(out / 'inventory.json')} and inventory.md (owner-only).\n"
         sys.stdout.write(as_json if args.json else text)
         return 0

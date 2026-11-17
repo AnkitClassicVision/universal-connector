@@ -39,7 +39,7 @@ Slack has no private draft that only the owner sees, so nothing here is yellow.
 Run the token's auth test read, then read one channel.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection slack --tool <read channel tool> --args '{}' --auth-kind api-key --whoami-tool <auth test tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection slack --tool <read channel tool> --args '{}' --auth-kind api-key --whoami-tool <auth test tool>
 ```
 
 ## Gotchas

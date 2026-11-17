@@ -1,6 +1,6 @@
 # How each harness connects, and its known limits
 
-Each harness gets its own entry pointing at the door, with its own door key. Print the exact entry with `python tools/entry.py --harness <id> --url <door url> --key-env <variable name>`; it never holds a key. The connect stage for each harness (`05a` to `05m`) has the file places per operating system, the read-timeout setting and the steps.
+Each harness gets its own entry pointing at the door, with its own door key. Print the exact entry with `python tools/entry.py --harness <id> --url <door url> --key-env <variable name>`; it never holds a key. Add it with the harness's own command, or `python tools/add_entry.py`, never by opening the config. The connect stage for each harness (`05a` to `05m`) has the file places per operating system, the read-timeout setting and the steps.
 
 ## Ways a harness can hold the key
 
@@ -9,6 +9,14 @@ Best first:
 1. **By reference**: the config names an environment variable or the harness's own secret store, and the key itself lives elsewhere (Codex `bearer_token_env_var`, Claude Code `${NAME}` expansion, VS Code `${input:...}` with `password: true`).
 2. **In the harness's own store**: you paste the key into the harness's settings screen and it keeps it (Oddboro's desk task).
 3. **In the config file**: only when the harness offers nothing else. Use the door key for that harness, never an upstream key, and make the file readable only by you. The door key is revocable on its own.
+
+## Harnesses that keep the door key in plain text
+
+These keep the door key inside their own config file: **Zed**, **Goose** (header values), **OpenMausBot**, **Cline**, and **Cursor or Windsurf** when the version does not expand `${env:...}`. That is a known, accepted trade-off, because it is only that harness's own revocable door key, never an upstream key:
+
+- `tools/add_entry.py --key-file` writes it in its own process and makes the file owner-only; nobody sees it.
+- The rescan marks such an entry as an expected door entry when run with `--door-url <door address>`, and does not count it as a plain-file secret to move.
+- If the file is ever shared or synced, revoke that harness's key with the door's own command and issue a new one.
 
 ## Formats
 

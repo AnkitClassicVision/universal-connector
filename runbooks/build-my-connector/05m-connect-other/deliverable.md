@@ -13,6 +13,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Must be true
 
+- Each section of `connect.md` has a **Method** line: the client's own command or screen, used by the person. The agent never opened a client config.
 - Each client has its own door key and its own smoke result.
 - Every unknown is written as unknown, not guessed.
 - No upstream key sits in any client's settings.

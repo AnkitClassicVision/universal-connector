@@ -34,7 +34,7 @@ Customer messaging and support. Agents usually read conversations, contacts and 
 Read the admin who owns the token, then one conversation.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection intercom --tool <read conversation tool> --args '{}' --auth-kind api-key --whoami-tool <current admin tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection intercom --tool <read conversation tool> --args '{}' --auth-kind api-key --whoami-tool <current admin tool>
 ```
 
 ## Gotchas

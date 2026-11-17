@@ -13,6 +13,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Must be true
 
+- Each section of `connect.md` has a **Method** line: the harness's own command (as run), `tools/add_entry.py` (with its receipt), or "the person, in the harness's settings". The agent never opened a config; backups sit in the run folder, owner-only.
 - Each connected agent has its own door key, its own backup and its own smoke result.
 - Only the files of the connected agents changed, and each had a backup before the change.
 - No upstream key sits in any of these configs.

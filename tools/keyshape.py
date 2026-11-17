@@ -4,7 +4,9 @@
   python tools/keyshape.py .                 # every file under the folder, .git skipped
   python tools/keyshape.py out/ --quiet      # only the count
 
-Run it over everything you are about to commit or share. Exit 1 when anything matches.
+Run it over everything you are about to commit or share. Exit 1 when anything matches, or when a
+file could not be checked (a link, a file over 5 MB, an unreadable file); those are listed as skipped.
+Text is read as UTF-8, UTF-16 (with a byte-order mark) or Latin-1.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ MAX_BYTES = 5_000_000
 def files_under(paths: list[str]):
     for raw in paths:
         p = Path(raw)
-        if p.is_file():
+        if p.is_file() or p.is_symlink():
             yield p
             continue
         for dirpath, dirnames, filenames in os.walk(p, followlinks=False):
@@ -34,17 +36,39 @@ def files_under(paths: list[str]):
                 yield Path(dirpath) / name
 
 
-def scan(paths: list[str]) -> list[tuple[str, int, str]]:
-    hits = []
+def decode(data: bytes) -> str:
+    """UTF-8 first; UTF-16 when it carries a byte-order mark; else Latin-1, which reads any bytes."""
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        try:
+            return data.decode("utf-16")
+        except UnicodeDecodeError:
+            pass
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode("latin-1")
+
+
+def scan(paths: list[str]) -> tuple[list[tuple[str, int, str]], list[tuple[str, str]]]:
+    """(hits, skipped). A file that cannot be checked is reported, never passed silently."""
+    hits, skipped = [], []
     for f in files_under(paths):
         try:
-            if f.is_symlink() or f.stat().st_size > MAX_BYTES:
+            if f.is_symlink():
+                skipped.append((str(f), "a link (not followed)"))
                 continue
-            text = f.read_bytes().decode("utf-8")
-        except (OSError, UnicodeDecodeError):
+            if not f.is_file():
+                skipped.append((str(f), "not a regular file"))
+                continue
+            if f.stat().st_size > MAX_BYTES:
+                skipped.append((str(f), "over 5 MB"))
+                continue
+            text = decode(f.read_bytes())
+        except OSError:
+            skipped.append((str(f), "unreadable"))
             continue
         hits += [(str(f), line, rule) for line, rule in line_hits(text)]
-    return hits
+    return hits, skipped
 
 
 def main(argv=None) -> int:
@@ -52,12 +76,14 @@ def main(argv=None) -> int:
     ap.add_argument("paths", nargs="+")
     ap.add_argument("--quiet", action="store_true")
     a = ap.parse_args(argv)
-    hits = scan(a.paths)
+    hits, skipped = scan(a.paths)
     if not a.quiet:
         for path, line, rule in hits:
             sys.stdout.write(f"{path}:{line}: {rule}\n")
-    sys.stdout.write(f"{len(hits)} key-shaped line(s)\n")
-    return 1 if hits else 0
+        for path, why in skipped:
+            sys.stdout.write(f"{path}: skipped, {why}\n")
+    sys.stdout.write(f"{len(hits)} key-shaped line(s), {len(skipped)} file(s) skipped\n")
+    return 1 if hits or skipped else 0
 
 
 if __name__ == "__main__":

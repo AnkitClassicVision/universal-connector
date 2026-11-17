@@ -10,7 +10,7 @@ import os
 import re
 from pathlib import Path
 
-from kit.core import FOUND, MISSING, UNAVAILABLE, Collector, Ctx, Finding, bounded_glob, read_text
+from kit.core import FOUND, MISSING, UNAVAILABLE, Collector, Ctx, Finding, bounded_glob, read_bytes, read_text
 from kit.plugins import Plugin
 
 MAX_FDS = 50_000
@@ -76,10 +76,9 @@ def _owners(proc: Path) -> dict[str, str]:
 
 def _proc_info(proc: Path, pid: str) -> tuple[str, bool]:
     _, comm = read_text(proc / pid / "comm", 4096)
-    try:
-        cmdline = (proc / pid / "cmdline").read_bytes()[:65536].lower()
-    except OSError:
-        cmdline = b""
+    _, raw = read_bytes(proc / pid / "cmdline", 65536, truncate=True)
+    cmdline = (raw or b"").lower()
+    del raw
     mentions = b"mcp" in cmdline
     del cmdline
     return (comm or "unknown").strip() or "unknown", mentions

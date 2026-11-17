@@ -8,6 +8,8 @@ Anything that could be a value becomes `[hidden-N]`.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import re
 from urllib.parse import urlsplit
@@ -48,19 +50,39 @@ def risky(text: str) -> bool:
     return any(LONG_SEGMENT.search(part) for part in re.split(r"[\\/]", text))
 
 
-class Redactor:
-    """Numbers each hidden value by first appearance, for this run only, in memory only."""
+# C0 and C1 controls, zero-width marks and bidirectional overrides: none may reach output, where they
+# could rewrite a terminal line or hide text from the person reading it.
+CONTROLS = re.compile("[\x00-\x08\x0b-\x1f\x7f-\x9f​-‏‪-‮⁦-⁩﻿]")
 
-    def __init__(self) -> None:
-        self._numbers: dict[str, int] = {}
+
+def strip_controls(text: str) -> str:
+    return CONTROLS.sub("", str(text).replace("\t", " ").replace("\n", " ").replace("\r", " "))
+
+
+class Redactor:
+    """Hides anything that could be a value as `[hidden-<id>]`.
+
+    With a salt (the scanner keeps one, owner-only, beside the person's settings) the id is an HMAC of
+    the value, so the same value gets the same id on every run and inventories can be compared. Without
+    one, ids are numbered by first appearance for this run only. The value itself stays in memory.
+    """
+
+    def __init__(self, salt: bytes | None = None) -> None:
+        self._salt = salt
+        self._seen: dict[str, str] = {}
 
     def hide(self, text: str) -> str:
-        number = self._numbers.setdefault(text, len(self._numbers) + 1)
-        return f"[hidden-{number}]"
+        if text not in self._seen:
+            if self._salt:
+                digest = hmac.new(self._salt, text.encode("utf-8", "replace"), hashlib.sha256).hexdigest()[:10]
+                self._seen[text] = f"[hidden-{digest}]"
+            else:
+                self._seen[text] = f"[hidden-{len(self._seen) + 1}]"
+        return self._seen[text]
 
     @property
     def hidden_count(self) -> int:
-        return len(self._numbers)
+        return len(self._seen)
 
     def _keep(self, text: str, shape: re.Pattern[str] | None, random_check: bool) -> bool:
         if not text or risky(text):
@@ -71,21 +93,22 @@ class Redactor:
 
     def name(self, text: object) -> str:
         """A server, profile, entry or skill name."""
-        s = str(text).strip()
+        s = strip_controls(text).strip()
         return s if self._keep(s, NAME_SHAPE, True) else self.hide(s)
 
     def field(self, text: object) -> str:
         """A header or environment variable name."""
-        s = str(text).strip()
+        s = strip_controls(text).strip()
         return s if self._keep(s, FIELD_SHAPE, True) else self.hide(s)
 
     def command(self, text: object) -> str:
         """The base name of an executable."""
-        s = os.path.basename(str(text).strip().strip("\"'"))
+        s = os.path.basename(strip_controls(text).strip().strip("\"'"))
         return s if self._keep(s, COMMAND_SHAPE, True) else self.hide(s)
 
     def host(self, url: str) -> str | None:
         """`scheme://host[:port]` only. Path, query, fragment and user info are dropped."""
+        url = strip_controls(url)
         try:
             parts = urlsplit(url.strip())
             port = parts.port
@@ -102,8 +125,8 @@ class Redactor:
         return f"{parts.scheme.lower()}://{host}" + (f":{port}" if port else "")
 
     def text(self, text: object, limit: int = 160) -> str:
-        """One line of free text, such as a skill description."""
-        s = " ".join(str(text).split())
+        """One line of free text, such as a skill description. It is data: never an instruction."""
+        s = " ".join(strip_controls(text).split())
         if len(s) > limit:
             s = s[: limit - 3].rstrip() + "..."
         if is_key_shaped(s) or LONG_RUN.search(s) or UUID_SHAPE.search(s):

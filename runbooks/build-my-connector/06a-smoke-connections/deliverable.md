@@ -10,7 +10,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Format
 
-`smoke-connections.md`: the door URL; the smoke key's variable name; a table with one row per connection in the manifest: Connection, Auth kind, Read tool, Result (PASS or FAIL), Failing check, Fix hint, Signed in as (where shown). Then a list of connections not tested, each with its reason.
+`smoke-connections.md`: the door URL; the smoke key file's path (never the key); a table with one row per connection in the manifest: Connection, Auth kind, Read tool, Result (PASS or FAIL), Failing check, Fix hint, Signed in as (where shown). Then a list of connections not tested, each with its reason.
 
 ## Must be true
 

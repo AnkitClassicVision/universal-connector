@@ -34,7 +34,7 @@ A meeting recorder and note taker. Agents usually read meeting lists, summaries 
 List one meeting.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection fathom --tool <list meetings tool> --args '{}' --auth-kind api-key
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection fathom --tool <list meetings tool> --args '{}' --auth-kind api-key
 ```
 
 ## Gotchas

@@ -34,7 +34,7 @@ Bases, tables and records. Agents usually read records and base schemas.
 Run the who-am-I read, then list one record.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection airtable --tool <list records tool> --args '{}' --auth-kind api-key --whoami-tool <who am I tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection airtable --tool <list records tool> --args '{}' --auth-kind api-key --whoami-tool <who am I tool>
 ```
 
 ## Gotchas

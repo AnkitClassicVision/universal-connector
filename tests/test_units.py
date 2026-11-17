@@ -36,6 +36,12 @@ def where(e):
     ({"type": "stdio", "command": "x", "env_keys": ["K"]}, ["keyring"]),
     ({"url": "https://a.example.com", "bearer_token_env_var": "K"}, ["env-reference"]),
     ({"url": "https://a.example.com", "auth": "oauth"}, ["oauth"]),
+    # Any literal directly under env or headers is an inline secret unless it is plainly a setting.
+    ({"command": "tool", "env": {"SERVICE_X": "abc123short"}}, ["inline"]),
+    ({"command": "tool", "env": {"API_BASE": "https://api.example.com/v1", "DATA_DIR": "/srv/data"}}, ["none"]),
+    ({"url": "https://a.example.com/mcp", "headers": {"X-Workspace": "acme"}}, ["inline"]),
+    ({"command": "tool", "env": {"SMTP_PASS": "x"}}, ["inline"]),
+    ({"command": "tool", "env": {"DB_PW": "secretish"}}, ["inline"]),
 ])
 def test_classify_entry(entry_, expect):
     assert where(entry_) == expect
@@ -82,10 +88,31 @@ def test_gotchas():
     assert cursor_paths({"nextCursor": None}) == []
     assert read_limit_ok(1, 5) and not read_limit_ok(4.5, 5)
     assert host_allowed("Door.Example.com", ["door.example.com"]) and not host_allowed("x", [])
-    assert read_only_reachable({"name": "list_items", "annotations": {"readOnlyHint": True}})[0]
-    assert not read_only_reachable({"name": "delete_item", "annotations": {"readOnlyHint": True}})[0]
-    assert not read_only_reachable({"name": "get", "annotations": {"readOnlyHint": True, "destructiveHint": False}})[0]
-    assert not read_only_reachable({"name": "get"})[0]
+
+# Oddboro's own rule (packages/ledger/src/read-only.ts): readOnlyHint === true, destructiveHint !== true,
+# and no change word among the name's words, split on camelCase and on any non-alphanumeric run.
+@pytest.mark.parametrize("tool,reached", [
+    ({"name": "list_items", "annotations": {"readOnlyHint": True}}, True),
+    ({"name": "get", "annotations": {"readOnlyHint": True, "destructiveHint": False}}, True),
+    ({"name": "get", "annotations": {"readOnlyHint": True, "destructiveHint": True}}, False),
+    ({"name": "get"}, False),
+    ({"name": "get", "annotations": {"readOnlyHint": "true"}}, False),
+    ({"name": "delete_item", "annotations": {"readOnlyHint": True}}, False),
+    ({"name": "createIssue", "annotations": {"readOnlyHint": True}}, False),
+    ({"name": "multica.create-issue", "annotations": {"readOnlyHint": True}}, False),
+    ({"name": "get_post", "annotations": {"readOnlyHint": True}}, False),
+    ({"name": "runReport", "annotations": {"readOnlyHint": True}}, False),
+    ({"name": "list_runs", "annotations": {"readOnlyHint": True}}, True),
+    ({"name": "searchMessages", "annotations": {"readOnlyHint": True}}, True),
+    ({"name": "storeFront_list", "annotations": {"readOnlyHint": True}}, False),
+])
+def test_read_only_rule_matches_oddboro(tool, reached):
+    assert read_only_reachable(tool)[0] is reached
+
+
+def test_change_words_are_oddboros_42():
+    from kit.gotchas import CHANGES
+    assert len(CHANGES) == 42 and {"add", "write", "upsert", "store", "run", "clear", "capture"} <= CHANGES
 
 
 @pytest.mark.parametrize("hid", sorted(HARNESSES))

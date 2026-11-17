@@ -15,6 +15,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Must be true
 
+- `connect.md` has a **Method** line ("the person, in the Services tab") and the keyring preflight result.
 - Oddboro is v0.0.6 or later, and the version and how it was found are recorded. For v0.0.6 or v0.0.7, each runner's own limits are noted.
 - The service address is https with the exact path and no redirect, and its host is in the door's host list.
 - The grant is Read only, to one Odd.

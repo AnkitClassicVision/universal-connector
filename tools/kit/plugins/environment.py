@@ -13,7 +13,7 @@ from kit.plugins import Plugin, shown
 NOT_SECRETS = re.compile(
     r"^(SSH_AUTH_SOCK|XAUTHORITY|DESKTOP_SESSION|SESSION_MANAGER|GNOME_DESKTOP_SESSION_ID|"
     r"XDG_.*|DBUS_.*|KDE_.*|GPG_AGENT_INFO|WINDOWID|.*_SOCK|.*_PID|SHLVL|TERM_SESSION_ID|"
-    r"MCP_TIMEOUT|MCP_TOOL_TIMEOUT|.*_TIMEOUT)$"
+    r"MCP_TIMEOUT|MCP_TOOL_TIMEOUT|.*_TIMEOUT|PWD|OLDPWD)$"
 )
 SHELL_FILES = (".bashrc", ".bash_profile", ".profile", ".zshrc", ".zshenv", ".zprofile", ".config/fish/config.fish")
 VAULT_SUBST = re.compile(r"(?i)\$\(\s*(op|bw|pass|gopass|vault|aws\s+secretsmanager|doppler|infisical)\b")

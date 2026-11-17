@@ -36,7 +36,7 @@ Code hosting, issues, merge requests and pipelines, on GitLab.com or a self-mana
 Read the current user, then one project.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection gitlab --tool <read project tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection gitlab --tool <read project tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
 ```
 
 ## Gotchas

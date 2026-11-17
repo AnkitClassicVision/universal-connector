@@ -35,7 +35,7 @@ Finance writes are red. Other people act on these records.
 Read the company info, which shows the company name.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection quickbooks --tool <read company info tool> --args '{}' --auth-kind oauth --whoami-tool <company info tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection quickbooks --tool <read company info tool> --args '{}' --auth-kind oauth --whoami-tool <company info tool>
 ```
 
 ## Gotchas

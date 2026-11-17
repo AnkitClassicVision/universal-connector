@@ -35,7 +35,7 @@ Boards, lists and cards. Agents usually read boards and cards.
 Read the current member, then one board.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection trello --tool <read board tool> --args '{}' --auth-kind api-key --whoami-tool <current member tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection trello --tool <read board tool> --args '{}' --auth-kind api-key --whoami-tool <current member tool>
 ```
 
 ## Gotchas

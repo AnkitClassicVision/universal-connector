@@ -36,7 +36,7 @@ Docs, wikis and databases. Agents usually search and read pages and database row
 Read the integration's own bot user, then search for one page.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection notion --tool <search tool> --args '{}' --auth-kind api-key --whoami-tool <bot user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection notion --tool <search tool> --args '{}' --auth-kind api-key --whoami-tool <bot user tool>
 ```
 
 ## Gotchas

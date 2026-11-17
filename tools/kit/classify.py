@@ -31,7 +31,7 @@ from kit.redact import LONG_RUN, Redactor, looks_random
 
 CRED_WORD = re.compile(
     r"(?i)(key|token|secret|passw|pwd|auth|credential|cookie|session|bearer|private|signature|"
-    r"dsn|database_url|connection_string|conn_str|(^|_)pat($|_)|"
+    r"dsn|database_url|connection_string|conn_str|(^|_)pat($|_)|(^|_)(pass|pw)($|_)|"
     r"(^|_)(db|database|pg|postgres|mysql|redis|mongo|mongodb|amqp)_(url|uri|dsn)($|_))"
 )
 KEY_KINDS = {"inline", "env-reference", "file", "vault", "keyring", "prompt", "environment", "helper"}
@@ -64,8 +64,24 @@ def env_names_in(text: str) -> list[str]:
     return [m.group(1) for m in ENV_NAME_IN_REF.finditer(text) if ENV_REF.search(text)]
 
 
-def value_kind(value: Any, name: str = "") -> str | None:
-    """Classify one literal under a header, env or settings key. None means not a credential."""
+SAFE_HEADERS = {"accept", "accept-encoding", "accept-language", "content-type", "user-agent", "cache-control",
+                "mcp-protocol-version", "x-request-id"}
+
+
+def _plain_setting(text: str) -> bool:
+    """A local path, or a web address with no user info and no query: a setting, not a secret."""
+    if text.startswith(("/", "~", "./", "../")) or re.match(r"^[A-Za-z]:[\\/]", text):
+        return True
+    m = re.match(r"^https?://([^/?#]*)([^?#]*)$", text)
+    return bool(m) and "@" not in m.group(1)
+
+
+def value_kind(value: Any, name: str = "", where: str = "other") -> str | None:
+    """Classify one literal under a header, env or settings key. None means not a credential.
+
+    `where` is "header" or "env" for a literal directly under such a block: there any literal counts as an
+    inline secret unless it is plainly a setting (a safe header, a flag, a level, a path, a plain address).
+    """
     if value is None or isinstance(value, bool) or isinstance(value, (int, float)):
         return None
     if isinstance(value, (dict, list)):
@@ -82,9 +98,14 @@ def value_kind(value: Any, name: str = "") -> str | None:
     credish = bool(CRED_WORD.search(name))
     if credish and (FILE_HINT.search(name) or text.startswith(("/", "~", "./", "file:"))) and not is_key_shaped(text):
         return "file"
+    shaped = is_key_shaped(text) or LONG_RUN.search(text) or looks_random(text)
+    if where == "header":
+        return "inline" if shaped or credish or name.strip().lower() not in SAFE_HEADERS else None
     if SAFE_LITERALS.match(text) and not credish:
         return None
-    if credish or is_key_shaped(text) or LONG_RUN.search(text) or looks_random(text):
+    if where == "env":
+        return None if (not credish and not shaped and _plain_setting(text)) else "inline"
+    if credish or shaped:
         return "inline"
     return None
 
@@ -194,7 +215,7 @@ def classify_entry(raw: dict[str, Any], red: Redactor) -> dict[str, Any]:
         if not isinstance(mapping, dict):
             continue
         for name, value in mapping.items():
-            vk = value_kind(value, str(name))
+            vk = value_kind(value, str(name), "header" if key in HEADER_KEYS else "env")
             if vk:
                 kinds.add(vk)
                 fields.add(red.field(name))

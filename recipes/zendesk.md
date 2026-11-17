@@ -34,7 +34,7 @@ Customer support tickets, users and help center articles. Agents usually read ti
 Read the current user, then one ticket.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection zendesk --tool <read ticket tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection zendesk --tool <read ticket tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

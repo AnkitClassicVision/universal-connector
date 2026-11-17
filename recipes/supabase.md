@@ -36,7 +36,7 @@ A hosted Postgres database platform with auth, storage and functions. Agents usu
 List the tables of the project.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection supabase --tool <list tables tool> --args '{}' --auth-kind oauth
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection supabase --tool <list tables tool> --args '{}' --auth-kind oauth
 ```
 
 ## Gotchas

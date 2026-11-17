@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Any
 
 PROTOCOL = "2025-06-18"
-Transport = Callable[[str, dict[str, str], bytes, float], tuple[int, dict[str, str], bytes]]
+Transport = Callable[..., tuple[int, dict[str, str], bytes]]  # (url, headers, body, timeout, method="POST")
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -26,14 +26,23 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-_OPENER = urllib.request.build_opener(_NoRedirect)
+def make_opener() -> urllib.request.OpenerDirector:
+    """No proxy, ever (HTTP_PROXY and friends are ignored, so a key never goes to a proxy), and no redirects."""
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect)
 
 
-def urllib_transport(url: str, headers: dict[str, str], body: bytes, timeout: float) -> tuple[int, dict[str, str], bytes]:
-    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+_OPENER = make_opener()
+
+
+def urllib_transport(url: str, headers: dict[str, str], body: bytes | None, timeout: float,
+                     method: str = "POST") -> tuple[int, dict[str, str], bytes]:
+    req = urllib.request.Request(url, data=body if method == "POST" else None, headers=headers, method=method)
     try:
         with _OPENER.open(req, timeout=timeout) as resp:  # the URL is the person's own door
-            return resp.status, {k.lower(): v for k, v in resp.headers.items()}, resp.read(10_000_000)
+            rh = {k.lower(): v for k, v in resp.headers.items()}
+            if method != "POST":  # a GET may open an endless event stream: headers only
+                return resp.status, rh, b""
+            return resp.status, rh, resp.read(10_000_000)
     except urllib.error.HTTPError as exc:
         return exc.code, {k.lower(): v for k, v in (exc.headers or {}).items()}, b""
     except (urllib.error.URLError, TimeoutError, OSError):
@@ -87,6 +96,7 @@ class McpClient:
         self.extra = dict(extra_headers or {})
         self.session: str | None = None
         self._id = 0
+        self.first_list_elapsed = 0.0
 
     def _headers(self, with_key: bool = True) -> dict[str, str]:
         h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
@@ -97,6 +107,14 @@ class McpClient:
             h["Authorization"] = f"Bearer {self._key}"
         h.update(self.extra)
         return h
+
+    def get_probe(self) -> tuple[int, str, float]:
+        """A GET on the MCP address: streamable HTTP answers 405 or opens an event stream. (status, type, secs)."""
+        h = {k: v for k, v in self._headers().items() if k != "Content-Type"}
+        h["Accept"] = "text/event-stream"
+        start = time.monotonic()
+        status, rh, _ = self.transport(self.url, h, None, min(self.timeout, 10.0), method="GET")
+        return status, rh.get("content-type", ""), time.monotonic() - start
 
     def rpc(self, method: str, params: dict | None = None, with_key: bool = True,
             headers: dict[str, str] | None = None, notify: bool = False) -> Reply:
@@ -142,6 +160,7 @@ class McpClient:
             cursor = last.result.get("nextCursor")
             if pages == 1:
                 first_has_next = bool(cursor)
+                self.first_list_elapsed = last.elapsed
             if not cursor:
                 break
         return tools, pages, first_has_next, last

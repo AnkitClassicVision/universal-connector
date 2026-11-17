@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Smoke test for ONE connection through the door: one read call. Runs on its own.
 
-  DOOR_KEY is the environment variable that holds a door key (never pass a key as an argument).
+  python tools/smoke_connection.py --url http://127.0.0.1:8765/mcp --key-file <0600 file with a door key> \\
+      --connection tracker --tool tracker__list_projects --args '{"limit": 1}' --auth-kind api-key \\
+      --plan <run folder>/02-plan/output/manifest-draft.yaml
 
-  python tools/smoke_connection.py --url http://127.0.0.1:8765/mcp --key-env DOOR_KEY \\
-      --connection tracker --tool tracker__list_projects --args '{"limit": 1}' --auth-kind api-key
+The key is read from the file inside this process. Pass the path, never the value; never put a key in
+an environment variable. Add --whoami-tool <tool> where the service has a "who am I" read; it prints
+"signed in as <account>". A browser lane (--auth-kind browser-session) must pass --whoami-tool.
 
-  Add --whoami-tool <tool> where the service has a "who am I" read; it prints "signed in as <account>".
-  A browser lane (--auth-kind browser-session) must pass --whoami-tool.
+Before any call, the tool must pass Oddboro's read-only rule (readOnlyHint true, destructiveHint not
+true, no change word in its name) and, with --plan, be green in the plan. With --plan, every tool the
+door offers for this connection must be green or yellow in the plan.
 
-Checks: key present, door answers, tool listed, the call succeeds within the read limit,
-the result is not empty, carries no paging cursor and no key-shaped string, and the
+Checks: key present, door answers, tool listed, read-only before calling, the call succeeds within the
+read limit, the result is not empty, carries no paging cursor and no key-shaped string, and the
 credential works for its auth kind. Prints pass or fail per check, never the key or the result.
 Exit codes: 0 pass, 1 a check failed, 2 bad arguments, 3 the output guard stopped the output.
 """
@@ -18,15 +22,14 @@ Exit codes: 0 pass, 1 a check failed, 2 bad arguments, 3 the output guard stoppe
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kit.gotchas import cursor_paths, key_shapes_in, read_limit_ok  # noqa: E402
+from kit.gotchas import cursor_paths, key_shapes_in, plan_tier, read_limit_ok, read_only_reachable  # noqa: E402
 from kit.mcp_client import McpClient  # noqa: E402
-from kit.smoke import FAIL, PASS, SKIP, WARN, Checks, emit, load_key, parse_args_json  # noqa: E402
+from kit.smoke import FAIL, PASS, SKIP, WARN, Checks, emit, load_key, load_plan, parse_args_json  # noqa: E402
 
 AUTH_KINDS = ("api-key", "oauth", "service-account", "browser-session")
 AUTH_FIX = {
@@ -58,36 +61,54 @@ def _account(result) -> str | None:
 
 
 def _has_content(result) -> bool:
-    if not isinstance(result, dict):
-        return False
-    return bool(result.get("content") or result.get("structuredContent"))
+    return isinstance(result, dict) and bool(result.get("content") or result.get("structuredContent"))
 
 
-def main(argv=None, transport=None, env=None, out=None) -> int:
+def may_call(tool_name: str, tools: list[dict], plan: dict | None) -> tuple[bool, str]:
+    """A smoke test calls only a listed tool that Oddboro's rule calls read-only, and green in the plan."""
+    tool = next((t for t in tools if t.get("name") == tool_name), None)
+    if tool is None:
+        return False, "the tool is not listed"
+    ok, why = read_only_reachable(tool)
+    if not ok:
+        return False, why
+    if plan is not None:
+        tier = plan_tier(plan, tool_name)
+        if tier not in (None, "green"):
+            return False, f"the plan makes it {tier}, not green"
+    return True, "read-only" + (", green in the plan" if plan is not None else "")
+
+
+def main(argv=None, transport=None, out=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--url", required=True, help="the door's MCP address")
-    ap.add_argument("--key-env", default="DOOR_KEY", help="environment variable holding a door key (default DOOR_KEY)")
-    ap.add_argument("--key-file", help="or a file (mode 600) holding the key")
+    ap.add_argument("--key-file", required=True, help="a file (mode 600) holding one door key; the tool reads it itself")
     ap.add_argument("--connection", required=True, help="the connection's name in the manifest")
     ap.add_argument("--tool", required=True, help="the read tool to call")
     ap.add_argument("--args", default="{}", help="JSON object of arguments for the read tool")
     ap.add_argument("--auth-kind", choices=AUTH_KINDS, default="api-key")
     ap.add_argument("--whoami-tool", help="a read tool that returns the signed-in account")
+    ap.add_argument("--plan", help="the manifest from 02-plan; tools must match its tiers")
     ap.add_argument("--read-timeout", type=float, default=60.0, help="the client's read timeout in seconds (default 60)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
-    env = os.environ if env is None else env
 
     checks = Checks(f"connection {a.connection} ({a.auth_kind})")
     arguments = parse_args_json(a.args)
     if arguments is None:
         sys.stderr.write("error: --args must be a JSON object\n")
         return 2
-    key, problem = load_key(a.key_env if not a.key_file else None, a.key_file, env)
+    plan = None
+    if a.plan:
+        plan = load_plan(a.plan)
+        if plan is None:
+            sys.stderr.write("error: --plan is missing or is not a manifest\n")
+            return 2
+    key, problem = load_key(a.key_file)
     if not key:
         checks.add("key present", FAIL, problem)
         return emit(checks, a.json, out)
-    checks.add("key present", PASS, "value not shown")
+    checks.add("key present", PASS, "read from the file; value not shown")
 
     client = McpClient(a.url, key=key, transport=transport, timeout=a.read_timeout)
     init = client.initialize()
@@ -102,7 +123,19 @@ def main(argv=None, transport=None, env=None, out=None) -> int:
         checks.add("tool listed", FAIL, last.error or f"HTTP {last.status}")
         return emit(checks, a.json, out)
     checks.add("tool listed", PASS if a.tool in names else FAIL,
-               f"{len(tools)} tool(s) on {pages} page(s)" + ("" if a.tool in names else f"; {a.tool} is not one of them"))
+               f"{len(tools)} tool(s) on {pages} page(s)" + ("" if a.tool in names else f"; {checks.red.name(a.tool)} is not one of them"))
+    if plan is not None:
+        mine = [n for n in sorted(names) if n.startswith(a.connection + "__")]
+        red = [n for n in mine if plan_tier(plan, n) not in ("green", "yellow")]
+        checks.add("plan tiers of offered tools", FAIL if red else PASS,
+                   f"the door offers {len(red)} tool(s) the plan did not make green or yellow: "
+                   + ", ".join(checks.red.name(n) for n in red[:5]) if red else f"{len(mine)} checked")
+    if a.tool not in names:
+        return emit(checks, a.json, out)
+    ok, why = may_call(a.tool, tools, plan)
+    checks.add("read-only before calling", PASS if ok else FAIL, why if ok else f"not called: {why}")
+    if not ok:
+        return emit(checks, a.json, out)
 
     reply = client.call_tool(a.tool, arguments)
     failed = reply.status != 200 or reply.error or (isinstance(reply.result, dict) and reply.result.get("isError"))
@@ -121,11 +154,15 @@ def main(argv=None, transport=None, env=None, out=None) -> int:
                    f"{reply.elapsed:.2f}s of {a.read_timeout:.0f}s")
 
     if a.whoami_tool:
-        who = client.call_tool(a.whoami_tool, {})
-        ok = who.status == 200 and not who.error and not (isinstance(who.result, dict) and who.result.get("isError"))
-        account = _account(who.result) if ok else None
-        checks.add("signed in", PASS if account else FAIL,
-                   f"signed in as {checks.red.name(account)}" if account else AUTH_FIX[a.auth_kind])
+        ok, why = may_call(a.whoami_tool, tools, plan)
+        if not ok:
+            checks.add("signed in", FAIL, f"who-am-I tool not called: {why}")
+        else:
+            who = client.call_tool(a.whoami_tool, {})
+            good = who.status == 200 and not who.error and not (isinstance(who.result, dict) and who.result.get("isError"))
+            account = _account(who.result) if good else None
+            checks.add("signed in", PASS if account else FAIL,
+                       f"signed in as {checks.red.name(account)}" if account else AUTH_FIX[a.auth_kind])
     elif a.auth_kind == "browser-session":
         checks.add("signed in", FAIL, "a browser lane must prove its sign-in: pass --whoami-tool")
     elif a.auth_kind in ("oauth", "service-account"):

@@ -36,7 +36,7 @@ Team chat and channels in Microsoft 365. The door reaches it through Microsoft G
 Read the signed-in user's profile, then one chat.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection teams --tool <read chat tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection teams --tool <read chat tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

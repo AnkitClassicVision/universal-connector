@@ -64,10 +64,37 @@ def address_problems(url: str) -> tuple[list[str], list[str]]:
         fails.append("use the exact path with no query or fragment")
     if parts.username or parts.password:
         fails.append("the address must not carry a user name or password")
-    slug = len(parts.hostname or "") + len(parts.path.strip("/"))
-    if slug > SLUG_LIMIT:
-        warns.append(f"host plus path is {slug} characters; keep it near {SLUG_LIMIT} or less so tool names stay under 64")
+    sid = service_id(url)
+    if len(sid) > SLUG_LIMIT:
+        warns.append(f"the service id Oddboro makes from this address, {sid}, is {len(sid)} characters; "
+                     f"keep it near {SLUG_LIMIT} or less so tool names stay under 64")
     return fails, warns
+
+
+def service_id(url: str) -> str:
+    """The service id Oddboro derives from an address: the lower-case host plus path, each run of
+    characters that are not letters or digits turned into one '-', with the port and query dropped."""
+    try:
+        parts = urlsplit(url.strip())
+    except ValueError:
+        return ""
+    text = ((parts.hostname or "") + parts.path).lower()
+    return "-".join(w for w in re.split(r"[^a-z0-9]+", text) if w)
+
+
+def keyring_preflight(platform: str, which, runner, env: dict[str, str]) -> tuple[bool, str]:
+    """Oddboro keeps pasted keys in the system's secret store. On Linux that is a Secret Service keyring
+    reached through secret-tool. (ready, what to do). Names only: nothing is read from the store."""
+    if platform in ("darwin", "windows"):
+        return True, "the system's own store (Keychain or Credential Manager) is built in"
+    if not which("secret-tool"):
+        return False, "install secret-tool (package libsecret-tools or libsecret) so Oddboro can store the key"
+    out = runner(["busctl", "--user", "list"], env, 10.0) if which("busctl") else None
+    if out is None:
+        return False, "could not list the session bus; check that a keyring (GNOME Keyring or KWallet) runs in your session"
+    if "org.freedesktop.secrets" not in out:
+        return False, "no Secret Service keyring is running in your session; start GNOME Keyring or KWallet and unlock it"
+    return True, "a Secret Service keyring is running"
 
 
 def version_table() -> str:

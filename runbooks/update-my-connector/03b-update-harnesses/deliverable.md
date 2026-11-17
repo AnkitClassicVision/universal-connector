@@ -9,12 +9,13 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Format
 
-Yes (who, when); then one section per harness change: Harness, Action, Config changed, Backup, Entry (server name, URL, how the key is held), Old key revoked (yes, no, not applicable), Smoke (the command, with no key, and its result lines), Rollback.
+Yes (who, when); then one section per harness change: Harness, Action, Config changed, Method (the harness's own command, `tools/add_entry.py`, or the person in its settings), Backup (its path in the run folder), Entry (server name, URL, how the key is held), Old key revoked (yes, no, not applicable), Smoke (the command, with no key, and its result lines), Rollback.
 
 ## Must be true
 
 - Every harness change with a yes in `02-diff` has a section; nothing without a yes was changed.
-- Every config edit had a backup first, and only that harness's config changed.
+- Every config change had a backup first, in the run folder (owner-only), and only that harness's config changed.
+- No config was opened by the agent; each change used the harness's own command, `tools/add_entry.py`, or the person.
 - A re-keyed harness works on its new key, and its old key was revoked by the person.
 - No value appears anywhere.
 

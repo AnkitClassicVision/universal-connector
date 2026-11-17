@@ -36,7 +36,7 @@ A work board for items, boards and updates. Agents usually read boards and items
 Read the current user, then one board.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection monday --tool <read board tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection monday --tool <read board tool> --args '{}' --auth-kind api-key --whoami-tool <current user tool>
 ```
 
 ## Gotchas

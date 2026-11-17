@@ -10,6 +10,7 @@ import configparser
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 from collections.abc import Callable
@@ -53,6 +54,15 @@ def default_runner(argv: list[str], env: dict[str, str], timeout: float) -> str 
     return done.stdout.decode("utf-8", "replace")
 
 
+def _forms(path: Path) -> list[str]:
+    """The spellings a path can reach output in, longest first."""
+    out: list[str] = []
+    for form in (str(path), os.path.abspath(path), os.path.realpath(path)):
+        if form not in out:
+            out.append(form)
+    return sorted(out, key=len, reverse=True)
+
+
 @dataclass
 class Ctx:
     home: Path
@@ -65,6 +75,15 @@ class Ctx:
     extra: dict[str, list[Path]] = field(default_factory=dict)
     runner: Runner = default_runner
     redactor: Redactor = field(default_factory=Redactor)
+    door_hosts: set[str] = field(default_factory=set)  # scheme://host[:port] of the person's own door
+    notes_for_run: list[str] = field(default_factory=list)
+
+    def safe_location(self, where: Path | str) -> str:
+        """Any place shown in output: home as `~`, control characters gone, key-shaped text hidden."""
+        from kit.redact import risky, strip_controls
+
+        text = strip_controls(self.show(where) if isinstance(where, Path) else str(where))
+        return self.redactor.hide(text) if risky(text) else text
 
     def env_path(self, name: str) -> Path | None:
         return self.expand(self.env.get(name, "").strip())
@@ -98,11 +117,12 @@ class Ctx:
     def show(self, path: Path | str) -> str:
         """A path for output: home as `~`, a test root as `/`. Never a value."""
         text = str(path)
-        home, root = str(self.home), str(self.root)
-        if text == home or text.startswith(home + os.sep):
-            text = "~" + text[len(home):]
-        elif root not in ("/", "") and (text == root or text.startswith(root + os.sep)):
-            text = "/" + text[len(root):].lstrip(os.sep)
+        for home in _forms(self.home):  # as given, absolute, and with links resolved (/home -> /var/home)
+            if text == home or text.startswith(home + os.sep):
+                return "~" + text[len(home):]
+        for root in _forms(self.root):
+            if root not in ("/", "") and (text == root or text.startswith(root + os.sep)):
+                return "/" + text[len(root):].lstrip(os.sep)
         return text
 
 
@@ -121,6 +141,7 @@ class Finding:
     plain_file: bool = False
     how_to_add: str = ""
     detail: str = ""
+    door_entry: bool = False  # a harness entry for the person's own door, holding that harness's door key
 
     @property
     def key(self) -> str:
@@ -132,7 +153,7 @@ class Finding:
             "name": self.name, "transport": self.transport, "host": self.host, "command": self.command,
             "key_fields": sorted(set(self.key_fields)), "key_where": sorted(set(self.key_where)),
             "auth_kind": self.auth_kind, "plain_file": self.plain_file, "how_to_add": self.how_to_add,
-            "detail": self.detail,
+            "detail": self.detail, "door_entry": self.door_entry,
         }
 
 
@@ -170,8 +191,7 @@ class Collector:
     notes: list[str] = field(default_factory=list)
 
     def look(self, where: Path | str, status: str) -> None:
-        shown = self.ctx.show(where) if isinstance(where, Path) else where
-        self.looked.append({"path": shown, "status": status})
+        self.looked.append({"path": self.ctx.safe_location(where), "status": status})
 
     def add(self, finding: Finding) -> None:
         self.findings.append(finding)
@@ -180,18 +200,59 @@ class Collector:
 # ---------------------------------------------------------------- safe loaders
 
 
-def read_text(path: Path, limit: int = MAX_FILE_BYTES) -> tuple[str, str | None]:
-    """(status, text). Text stays in this process."""
+def read_bytes(path: Path, limit: int = MAX_FILE_BYTES, truncate: bool = False) -> tuple[str, bytes | None]:
+    """(status, bytes) of a regular file only. A pipe, socket or device is never read, so nothing hangs:
+    the open does not block, and the file's type is checked on the open handle before any read."""
     try:
-        if not path.is_file():
-            return (MISSING if not path.exists() else UNREADABLE), None
-        if path.stat().st_size > limit:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_CLOEXEC", 0))
+    except FileNotFoundError:
+        return MISSING, None
+    except OSError:
+        return (UNREADABLE if os.path.lexists(path) else MISSING), None
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode):
+            return UNREADABLE, None
+        if st.st_size > limit and not truncate:
             return TOO_LARGE, None
-        return FOUND, path.read_bytes().decode("utf-8")
-    except UnicodeDecodeError:
-        return MALFORMED, None
+        chunks, left = [], limit
+        while left > 0:
+            chunk = os.read(fd, min(left, 1 << 20))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            left -= len(chunk)
+        return FOUND, b"".join(chunks)
     except OSError:
         return UNREADABLE, None
+    finally:
+        os.close(fd)
+
+
+def read_text(path: Path, limit: int = MAX_FILE_BYTES) -> tuple[str, str | None]:
+    """(status, text). Text stays in this process."""
+    status, data = read_bytes(path, limit)
+    if data is None:
+        return status, None
+    try:
+        return FOUND, data.decode("utf-8")
+    except UnicodeDecodeError:
+        return MALFORMED, None
+
+
+if yaml is not None:
+    class _NoAliasLoader(yaml.SafeLoader):
+        """Safe YAML that refuses anchors and aliases: a few lines of them can expand to billions of nodes.
+        Hand-written harness configs do not use them."""
+
+        def compose_node(self, parent, index):
+            if self.check_event(yaml.events.AliasEvent):
+                raise yaml.composer.ComposerError(None, None, "aliases are refused", self.peek_event().start_mark)
+            return super().compose_node(parent, index)
+
+
+def load_yaml(text: str) -> Any:
+    return yaml.load(text, Loader=_NoAliasLoader)  # noqa: S506 - a SafeLoader subclass
 
 
 def _strip_jsonc(text: str) -> str:
@@ -240,7 +301,7 @@ def parse(text: str, fmt: str) -> tuple[str, Any]:
         if fmt == "yaml":
             if yaml is None:
                 return NEEDS_PYYAML, None
-            return FOUND, yaml.safe_load(text)
+            return FOUND, load_yaml(text)
         if fmt == "ini":
             cp = configparser.RawConfigParser(strict=False, interpolation=None)
             cp.read_string(text)
@@ -263,18 +324,17 @@ def load(col: Collector, path: Path, fmt: str) -> Any:
 
 def frontmatter(path: Path) -> tuple[str, dict[str, Any] | None]:
     """Only the leading `---` block of a SKILL.md. The body is never read past it."""
-    try:
-        with path.open("rb") as handle:
-            head = handle.read(FRONTMATTER_BYTES).decode("utf-8", "replace")
-    except OSError:
-        return UNREADABLE, None
+    status, data = read_bytes(path, FRONTMATTER_BYTES, truncate=True)
+    if data is None:
+        return status, None
+    head = data.decode("utf-8", "replace")
     m = re.match(r"^﻿?---\r?\n(.*?)\r?\n---\s*(?:\r?\n|$)", head, re.S)
     if not m:
         return MALFORMED, None
     block = m.group(1)
     if yaml is not None:
         try:
-            data = yaml.safe_load(block)
+            data = load_yaml(block)
         except Exception:  # noqa: BLE001
             data = None
         if isinstance(data, dict):

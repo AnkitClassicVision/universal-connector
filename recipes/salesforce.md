@@ -36,7 +36,7 @@ A CRM for accounts, contacts, opportunities and cases. Agents usually read and q
 Read the signed-in user's identity, then query one record.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection salesforce --tool <query tool> --args '{}' --auth-kind oauth --whoami-tool <identity tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection salesforce --tool <query tool> --args '{}' --auth-kind oauth --whoami-tool <identity tool>
 ```
 
 ## Gotchas

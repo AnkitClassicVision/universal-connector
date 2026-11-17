@@ -12,7 +12,8 @@ Show the person the options that apply, with the trade-offs in these files, and 
 | Where secrets live | `references/vaults.md` | The OS keyring |
 | Where the door runs | `references/door-placement.md` | This machine, loopback only |
 | How each harness connects, and its limits | `references/harnesses.md` | One entry per harness, key by reference |
-| Oddboro versions, address rules and smoke test | `references/oddboro.md` | v0.0.6 or later, short https address |
+| Oddboro versions, keyring preflight, address rules and smoke test | `references/oddboro.md` | v0.0.6 or later, short https address |
+| Google sign-in with your own Desktop OAuth client | `references/google-desktop-client.md` | Internal for Workspace; External in Testing for personal (7-day sign-ins) |
 | How each connection signs in, and who does what | `references/auth-and-logins.md` | A fresh read-scoped API key, or one OAuth sign-in |
 | Tiers and scopes | `references/tiers-scopes.md` | Read only (green); everything unknown is red |
 

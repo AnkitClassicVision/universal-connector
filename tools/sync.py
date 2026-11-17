@@ -13,6 +13,7 @@ import argparse
 import re
 import shutil
 import sys
+import time
 from pathlib import Path
 
 
@@ -24,7 +25,7 @@ def status_of(rb):
     return m.group(1) if m else None
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("registry")
     ap.add_argument("--target", action="append", required=True, help="a harness skills folder; repeatable")
@@ -32,7 +33,7 @@ def main():
     ap.add_argument("--include-draft", action="store_true")
     ap.add_argument("--force", action="store_true", help="replace entries that already exist")
     ap.add_argument("--dry-run", action="store_true")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     registry = Path(args.registry).expanduser().resolve()
     if not (registry / "runbooks").is_dir():
@@ -64,11 +65,15 @@ def main():
                 if not args.force:
                     print(f"  keep    {src.name} (already there; use --force to replace)")
                     continue
+                # Never delete what is there: move it aside first, so --force can be undone.
+                backup = dst.with_name(f"{dst.name}.bak-{time.strftime('%Y%m%dT%H%M%S')}")
+                n = 1
+                while backup.exists() or backup.is_symlink():
+                    n += 1
+                    backup = dst.with_name(f"{dst.name}.bak-{time.strftime('%Y%m%dT%H%M%S')}-{n}")
+                print(f"  backup  {src.name} -> {backup.name}")
                 if not args.dry_run:
-                    if dst.is_symlink() or dst.is_file():
-                        dst.unlink()
-                    else:
-                        shutil.rmtree(dst)
+                    dst.rename(backup)
             print(f"  {'link' if args.mode == 'symlink' else 'copy'}    {src.name}")
             if args.dry_run:
                 continue

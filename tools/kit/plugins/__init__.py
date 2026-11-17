@@ -17,7 +17,6 @@ from typing import Any
 
 from kit.classify import PLAIN, classify_entry, how_to_add
 from kit.core import Collector, Ctx, Finding
-from kit.redact import risky
 
 
 @dataclass(frozen=True)
@@ -31,9 +30,8 @@ class Plugin:
 
 
 def shown(ctx: Ctx, path: Path | str) -> str:
-    """A location for output. A path that itself looks like a key is hidden."""
-    text = ctx.show(path) if isinstance(path, Path) else str(path)
-    return ctx.redactor.hide(text) if risky(text) else text
+    """A location for output: control characters gone, and a path that itself looks like a key hidden."""
+    return ctx.safe_location(path)
 
 
 def server_items(servers: Any) -> list[tuple[str, dict]]:

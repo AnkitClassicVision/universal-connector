@@ -15,6 +15,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Must be true
 
+- `connect.md` has a **Method** line: the harness's own command (as run), `tools/add_entry.py` (with its receipt), or "the person, in the harness's settings". The agent never opened the config; backups sit in the run folder, owner-only.
 - Only Codex's config changed, and a backup existed before the change.
 - The key is held by reference through `bearer_token_env_var`. No key sits in the file.
 - The in-harness check and the smoke test were both run, and their results are recorded as they came out.

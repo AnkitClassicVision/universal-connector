@@ -8,8 +8,8 @@ import json
 import oddboro_version
 import smoke_harness
 from fakedoor import FakeDoor
-from kit.oddboro import address_problems, facts, parse
-from test_smoke import ENV, result_of
+from kit.oddboro import address_problems, facts, keyring_preflight, parse, service_id
+from test_smoke import KEY_ARGS, result_of
 
 TAILNET = "https://door.tailnet-name.ts.net/mcp"
 
@@ -56,8 +56,8 @@ def test_detection_order():
 
 def harness(door, url, *more):
     out = io.StringIO()
-    code = smoke_harness.main(["--harness", "oddboro", "--url", url, "--server-name", "door", "--json", *more],
-                              transport=door, env=ENV, out=out)
+    code = smoke_harness.main(["--harness", "oddboro", "--url", url, "--server-name", "door", "--json", *KEY_ARGS, *more],
+                              transport=door, out=out)
     return code, json.loads(out.getvalue())
 
 
@@ -67,7 +67,37 @@ def test_oddboro_version_gate_in_smoke():
     code, rep = harness(FakeDoor(), TAILNET, "--oddboro-version", "v0.0.9")
     assert code == 0 and result_of(rep, "new door tools") == "WARN"
     code, rep = harness(FakeDoor(), TAILNET)
-    assert result_of(rep, "Oddboro version") == "WARN"
+    assert code == 1 and result_of(rep, "Oddboro version") == "FAIL"
+    code, rep = harness(FakeDoor(), TAILNET, "--oddboro-version", "latest")
+    assert code == 1 and result_of(rep, "Oddboro version") == "FAIL"
+
+
+def test_service_id_rule():
+    assert service_id("https://Door.Tailnet-Name.ts.net:8443/mcp?x=1") == "door-tailnet-name-ts-net-mcp"
+    assert service_id("https://door.localhost/") == "door-localhost"
+
+
+def test_non_numeric_port_gives_a_fixed_message(monkeypatch, capsys):
+    monkeypatch.setenv("ODDBORO_PORT", "not-a-port")
+    code = oddboro_version.main(["--json"], getter=lambda url: (0, b""), describe=lambda f: None, out=io.StringIO())
+    assert code == 2 and "ODDBORO_PORT" in capsys.readouterr().err
+
+
+def test_keyring_preflight():
+    which_none = lambda name: None  # noqa: E731
+    which_all = lambda name: "/usr/bin/" + name  # noqa: E731
+    assert keyring_preflight("darwin", which_none, None, {})[0]
+    ok, why = keyring_preflight("linux", which_none, None, {})
+    assert not ok and "secret-tool" in why
+    ok, why = keyring_preflight("linux", which_all, lambda argv, env, t: ":1.2 org.freedesktop.portal\n", {})
+    assert not ok and "keyring" in why
+    assert keyring_preflight("linux", which_all, lambda argv, env, t: "org.freedesktop.secrets 1234 gnome-keyring-d\n", {})[0]
+
+
+def test_version_tool_ignores_proxies():
+    import urllib.request
+    opener = oddboro_version.make_opener()
+    assert not [h for h in opener.handlers if isinstance(h, urllib.request.ProxyHandler) and h.proxies]
 
 
 def test_redirect_and_query_fail():

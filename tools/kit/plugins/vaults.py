@@ -2,8 +2,9 @@
 
 Without the opt-in, these plug-ins only say whether the tool is present. With it,
 they run each tool's own listing command. The kit never signs in, never unlocks,
-and never runs a command that decrypts an entry. Bitwarden's listing returns
-whole items to this process; everything but the item name is dropped at once.
+and never runs a command that decrypts an entry or returns one. Bitwarden's CLI
+has no names-only listing (`bw list items` returns whole items), so for Bitwarden
+the kit reports presence and lock state only.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import re
 import shutil
 from pathlib import Path
 
-from kit.core import FOUND, MISSING, OPT_IN, UNAVAILABLE, Collector, Ctx, Finding, bounded_glob
+from kit.core import FOUND, MISSING, OPT_IN, SKIPPED, UNAVAILABLE, Collector, Ctx, Finding, bounded_glob
 from kit.plugins import Plugin
 
 TIMEOUT = 15.0
@@ -76,20 +77,11 @@ def scan_bitwarden(ctx: Ctx, col: Collector) -> None:
         col.look("bw status", UNAVAILABLE)
         col.notes.append("Bitwarden CLI is locked or signed out. Unlock it yourself and run the scan again if you want these names.")
         return
-    out = ctx.runner([exe, "list", "items"], ctx.env, TIMEOUT)
-    try:
-        items = json.loads(out) if out else None
-    except ValueError:
-        items = None
-    del out  # whole items, values included: drop them at once
-    if not isinstance(items, list):
-        col.look("bw list items", UNAVAILABLE)
-        return
-    col.look("bw list items", FOUND)
-    names = [str(it.get("name", "item")) for it in items[:MAX_ENTRIES] if isinstance(it, dict)]
-    del items
-    for n in names:
-        _entry(ctx, col, "Bitwarden", n)
+    # `bw list items` returns whole items, passwords included. The kit never runs it, and the
+    # Bitwarden CLI has no names-only listing, so entry names are left to the person.
+    col.look("bw list items", SKIPPED)
+    col.notes.append("Bitwarden CLI has no names-only listing, so the kit does not list its entries. "
+                     "If the plan needs them, read the entry names yourself in the Bitwarden app.")
 
 
 def _pass_dir(ctx: Ctx) -> Path:
@@ -190,7 +182,8 @@ def scan_secret_service(ctx: Ctx, col: Collector) -> None:
 
 PLUGINS = [
     Plugin("1password", "1Password CLI (op item list: titles only)", "vault", lambda ctx: ["op on PATH; op item list --format json"], scan_onepassword, opt_in=True),
-    Plugin("bitwarden", "Bitwarden CLI (bw list items: names only, when already unlocked)", "vault", lambda ctx: ["bw on PATH; bw status; bw list items"], scan_bitwarden, opt_in=True),
+    Plugin("bitwarden", "Bitwarden CLI (presence and lock state only; it has no names-only listing)", "vault",
+           lambda ctx: ["bw on PATH; bw status"], scan_bitwarden, opt_in=True),
     Plugin("pass", "pass password store (file names only, nothing decrypted)", "vault", lambda ctx: [ctx.show(_pass_dir(ctx)) + "/**/*.gpg"], scan_pass, opt_in=True),
     Plugin("gopass", "gopass (gopass ls --flat)", "vault", lambda ctx: ["gopass on PATH; gopass ls --flat"], scan_gopass, opt_in=True),
     Plugin("keychain", "macOS keychain (attribute names, never decrypted)", "vault", lambda ctx: ["security dump-keychain (no -d)"], scan_keychain, opt_in=True),

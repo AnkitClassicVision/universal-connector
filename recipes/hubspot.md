@@ -37,7 +37,7 @@ CRM writes are red because other people act on these records.
 Read the account details, then one contact.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection hubspot --tool <read contact tool> --args '{}' --auth-kind api-key --whoami-tool <account details tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection hubspot --tool <read contact tool> --args '{}' --auth-kind api-key --whoami-tool <account details tool>
 ```
 
 ## Gotchas

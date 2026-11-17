@@ -4,7 +4,18 @@
 |---|---|---|
 | This machine, loopback only (`http://127.0.0.1:<port>/mcp`) | Every harness runs on this machine. The default | Harnesses that need `https://` (Oddboro) or run elsewhere cannot reach it without a route |
 | This machine plus a private https route on a tailnet (for example `tailscale serve` on a free port) | A harness needs https, or runs on another of the person's own devices | Tailnet-only. Never a public route such as `tailscale funnel`. The route keeps the tailnet Host header, so the door's host list must name that host exactly. The person runs the route command; check the vendor docs for your version's syntax |
+| This machine plus a local https proxy on a `<label>.localhost` name | A harness on this machine needs https and there is no tailnet | Only this machine can reach it. The certificate comes from a local authority the system must trust; a harness that wants a publicly trusted certificate (Oddboro does) may refuse it. Check with that harness's smoke test |
 | A server the person controls | Harnesses run in several places; the door must stay up | The server holds the vault access, so it needs its own hardening, updates and backups. Out of scope for a first run |
+
+## Private https routes
+
+A harness that accepts only `https://` needs a route in front of the loopback door. Pick one; the person runs every command. Commands marked **unverified** were not run by this kit's authors; check the vendor docs for your version.
+
+1. **Tailscale serve (tailnet only).** Forwards a tailnet https address to the door's loopback port, with a publicly trusted certificate for the tailnet name. Example, unverified for your version: `tailscale serve --bg --https=8443 http://127.0.0.1:8765`. Never use `tailscale funnel`, which publishes it to the internet. Add the exact host the route sends (for example `<machine>.tailnet-name.ts.net:8443`, or without the port when it is 443) to the door's host list.
+2. **A local https proxy on a `.localhost` name.** Names under `.localhost` always resolve to this machine. Example with Caddy, unverified: `caddy reverse-proxy --from https://door.localhost:8443 --to 127.0.0.1:8765`, after `caddy trust` installs Caddy's local authority into the system store (it asks for the person's yes). Then add `door.localhost:8443` to the door's `door_hosts`, exactly. Any proxy works the same way (nginx, a mkcert certificate, Windows' IIS): it must terminate https on the `.localhost` name and forward to the loopback port without changing the path. Some clients do not trust a local authority, so run the harness's own smoke test and stop if it fails.
+3. **A server** with a real domain and certificate: out of scope for a first run.
+
+Whichever route: keep the host plus path short (Oddboro builds tool names from it), use the exact path with no redirect, and run `python tools/gotchas.py host --route-host <host> --door-hosts <list>`.
 
 Rules for every placement:
 

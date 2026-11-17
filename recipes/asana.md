@@ -36,7 +36,7 @@ Work management for tasks and projects. Agents usually read tasks, projects and 
 Read the current user, then one task.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection asana --tool <read task tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection asana --tool <read task tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

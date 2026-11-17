@@ -5,7 +5,10 @@ status: draft
 # Stage ids that wait for a human yes before they start. [] means decided: none.
 # 'undecided' means nobody has decided yet. Lint keeps flagging it.
 # Set from the owner's brief: each vault write, the service install and each config edit need a yes.
-human_gate: [03-vault, 04-door, 05a-connect-claude-code, 05b-connect-claude-desktop, 05c-connect-codex, 05d-connect-cursor, 05e-connect-windsurf, 05f-connect-vscode, 05g-connect-zed, 05h-connect-goose, 05i-connect-hermes, 05j-connect-mausbot, 05k-connect-oddboro, 05l-connect-grokbot, 05m-connect-other, 05n-carry-skills]
+# 03 and 04 always change something, so they wait before they start. Each 05x stage may only write
+# skipped.md (harness not chosen), so its yes is taken inside the stage, before any change, and recorded
+# in connect.md or carry.md (skills/connect-harness step 2). That keeps every config edit behind a yes.
+human_gate: [03-vault, 04-door]
 source: ""
 runs_on: []       # harnesses this has passed its gates on
 requires: [python-3.11, pyyaml, the-door-release, a-vault-of-the-owners-choice]
@@ -73,8 +76,8 @@ stages:
     needs: [02-plan, 04-door]
     gate: true
   - id: 06b-smoke-harnesses
-    needs: [05a-connect-claude-code, 05b-connect-claude-desktop, 05c-connect-codex, 05d-connect-cursor, 05e-connect-windsurf, 05f-connect-vscode, 05g-connect-zed, 05h-connect-goose, 05i-connect-hermes, 05j-connect-mausbot, 05k-connect-oddboro, 05l-connect-grokbot, 05m-connect-other]
+    needs: [02-plan, 05a-connect-claude-code, 05b-connect-claude-desktop, 05c-connect-codex, 05d-connect-cursor, 05e-connect-windsurf, 05f-connect-vscode, 05g-connect-zed, 05h-connect-goose, 05i-connect-hermes, 05j-connect-mausbot, 05k-connect-oddboro, 05l-connect-grokbot, 05m-connect-other]
     gate: true
   - id: 07-handoff
-    needs: [03-vault, 04-door, 05n-carry-skills, 06a-smoke-connections, 06b-smoke-harnesses]
+    needs: [02-plan, 03-vault, 04-door, 05a-connect-claude-code, 05b-connect-claude-desktop, 05c-connect-codex, 05d-connect-cursor, 05e-connect-windsurf, 05f-connect-vscode, 05g-connect-zed, 05h-connect-goose, 05i-connect-hermes, 05j-connect-mausbot, 05k-connect-oddboro, 05l-connect-grokbot, 05m-connect-other, 05n-carry-skills, 06a-smoke-connections, 06b-smoke-harnesses]
     gate: false

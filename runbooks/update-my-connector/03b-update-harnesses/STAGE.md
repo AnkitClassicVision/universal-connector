@@ -19,9 +19,9 @@ Read only what is listed here. This stage is a human yes point. It runs side by 
 
 For each harness change, on its own:
 
-1. **Add**: follow `skills/connect-harness` with the facts from that harness's `05x` stage in `build-my-connector`.
-2. **Re-key**: the person issues a fresh door key for the harness, puts it where the harness holds its key, you run that harness's smoke test, then the person revokes the old key with the door's own command, and you run `tools/smoke_harness.py ... --expect-revoked` with the old key's variable if they kept it, or skip that check and say so.
-3. **Remove**: back up the config, remove only the door entry, and the person revokes that harness's door key.
+1. **Add**: follow `skills/connect-harness` with the facts from that harness's `05x` stage in `build-my-connector`. Never open the config: the harness's own command or `tools/add_entry.py`.
+2. **Re-key**: the person issues a fresh door key for the harness into a new 0600 file and puts it where the harness holds its key (for a plain-key harness, `tools/add_entry.py --key-file <new file> --replace`), you run that harness's smoke test with `--key-file <new file>`, then the person revokes the old key with the door's own command, and you run `tools/smoke_harness.py ... --key-file <old key file> --expect-revoked` if they kept the old file, or skip that check and say so. The person then deletes the old key file.
+3. **Remove**: remove only the door entry, with the harness's own command or in its own settings (the person), and the person revokes that harness's door key. If a backup is made, it goes into this stage's `backup/` folder in the run folder, never beside the config.
 4. Write `harnesses-update.md`.
 
 ## Output

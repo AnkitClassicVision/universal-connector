@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kit.harnesses import DEFAULT_NAME, DEFAULT_URL, HARNESSES, entry, limits_table  # noqa: E402
+from kit.harnesses import DEFAULT_NAME, DEFAULT_URL, HARNESSES, entry, entry_problem, limits_table  # noqa: E402
 from kit.report import guard  # noqa: E402
 
 
@@ -40,6 +40,10 @@ def main(argv=None) -> int:
             places = "; ".join(p for paths in h.config.values() for p in paths)
             sys.stdout.write(guard(f"{h.id:<15} {h.stage:<28} {places}\n"))
         return 0
+    problem = entry_problem(a.url, a.key_env, a.name)
+    if problem:
+        sys.stderr.write(f"error: {problem}\n")
+        return 2
     h = HARNESSES[a.harness]
     text = entry(a.harness, a.url, a.key_env, a.name, a.read_timeout)
     notes = "".join(f"# note: {n}\n" for n in h.notes)

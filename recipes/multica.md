@@ -38,7 +38,7 @@ Comments and cards are red because other people and agents act on them and would
 Read the current user or one issue.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection multica --tool <read issue tool> --args '{}' --auth-kind api-key
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection multica --tool <read issue tool> --args '{}' --auth-kind api-key
 ```
 
 Add `--whoami-tool <tool>` if the door exposes a current-user read.

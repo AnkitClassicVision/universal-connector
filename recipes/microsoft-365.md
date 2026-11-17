@@ -36,7 +36,7 @@ Outlook mail, calendar and OneDrive or SharePoint files. The door reaches them t
 Read the signed-in user's profile, then list one calendar event.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection m365-work --tool <list events tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection m365-work --tool <list events tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

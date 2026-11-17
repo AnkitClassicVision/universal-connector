@@ -11,6 +11,7 @@ Mail, calendar and files in a Google account. Agents usually read mail, events a
 
 ## Connect it
 
+- Your own OAuth client, step by step (project, APIs, consent screen, test user, Desktop client, the 7-day Testing caveat, Internal for Workspace): `skills/connector-options/references/google-desktop-client.md`.
 - Official MCP server: check the vendor docs.
 - Community MCP servers: exist.
 - Direct API adapter: a reasonable choice. The door calls the Gmail, Calendar and Drive APIs with one sign-in per account.
@@ -36,7 +37,7 @@ Mail, calendar and files in a Google account. Agents usually read mail, events a
 Read the Gmail profile, which shows the signed-in address, then list one calendar event.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection google-work --tool <list events tool> --args '{}' --auth-kind oauth --whoami-tool <mail profile tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection google-work --tool <list events tool> --args '{}' --auth-kind oauth --whoami-tool <mail profile tool>
 ```
 
 ## Gotchas

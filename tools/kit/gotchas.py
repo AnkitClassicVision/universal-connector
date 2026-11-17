@@ -6,11 +6,13 @@
   origin         a request with an Origin header must be refused (keeps browser pages out)
   cursors        list results must drop paging cursors (they trip key-shaped scans)
   first page     some harnesses read only the first page of tools/list
-  read only      a Read only grant reaches a tool only when it is marked read-only and has no change word
+  read only      Oddboro's exact rule for what a Read only grant reaches; this kit uses it before any smoke call
+  tiers          a tool the plan did not make green or yellow must not be offered
 """
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
 from typing import Any
@@ -20,11 +22,33 @@ from kit.keyshape import rule_hits
 
 CURSOR_KEYS = {"nextpagetoken", "nextcursor", "pagetoken", "cursor", "next_page_token", "next_cursor",
                "continuationtoken", "continuation", "nextlink", "@odata.nextlink", "next_page", "starting_after"}
-CHANGE_WORDS = re.compile(
-    r"(?i)(^|[_\-.])(create|update|delete|remove|send|post|write|put|patch|set|add|move|cancel|archive|"
-    r"edit|modify|insert|upsert|drop|publish|deploy|pay|refund|invite|share|grant|revoke|reply|forward|merge)"
-    r"([_\-.]|$)"
-)
+
+# Oddboro's list, word for word (packages/ledger/src/read-only.ts, CHANGES): 42 words. A read tool with one
+# of them anywhere among its name's words (`get_post`) is left out too: the rule errs toward less.
+CHANGES = frozenset("""
+add append approve archive assign cancel capture clear close comment create delete destroy drop edit exec
+execute forward insert invite merge modify move patch post publish put remove rename reply reset run save send
+set share store submit update upload upsert write
+""".split())
+
+
+def name_words(name: str) -> list[str]:
+    """`multica_create_issue`, `createIssue` and `create-issue` all give create and issue (Oddboro's nameWords)."""
+    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(name)).lower()
+    return [w for w in re.split(r"[^a-z0-9]+", spaced) if w]
+
+
+def read_only_reachable(tool: dict) -> tuple[bool, str]:
+    """Oddboro's `readsOnly`: readOnlyHint === true, destructiveHint !== true, no change word. (yes or no, why not)."""
+    ann = tool.get("annotations") if isinstance(tool.get("annotations"), dict) else {}
+    if ann.get("readOnlyHint") is not True:
+        return False, "readOnlyHint is not true"
+    if ann.get("destructiveHint") is True:
+        return False, "destructiveHint is true"
+    hit = next((w for w in name_words(str(tool.get("name", ""))) if w in CHANGES), None)
+    if hit:
+        return False, f"its name has the change word '{hit}'"
+    return True, ""
 
 
 def long_names(harness: str, server: str, tools: list[str]) -> list[tuple[str, int]]:
@@ -77,14 +101,39 @@ def host_allowed(route_host: str, door_hosts: list[str]) -> bool:
     return route_host.strip().lower() in {h.strip().lower() for h in door_hosts}
 
 
-def read_only_reachable(tool: dict) -> tuple[bool, str]:
-    """Would a Read only grant reach this tool? (yes or no, and why not)."""
-    ann = tool.get("annotations") if isinstance(tool.get("annotations"), dict) else {}
-    name = str(tool.get("name", ""))
-    if ann.get("readOnlyHint") is not True:
-        return False, "readOnlyHint is not true"
-    if "destructiveHint" in ann:
-        return False, "it carries a destructiveHint"
-    if CHANGE_WORDS.search(name):
-        return False, "its name has a change word"
-    return True, ""
+def plan_tier(manifest: dict, tool_name: str) -> str | None:
+    """The plan's tier for a door tool named `<connection>__<tool>`: the first matching rule, else red.
+
+    None when the name does not start with a connection in the plan (one of the door's own tools).
+    """
+    conn, sep, tool = str(tool_name).partition("__")
+    if not sep:
+        return None
+    for c in manifest.get("connections") or []:
+        if isinstance(c, dict) and c.get("name") == conn:
+            for rule in c.get("tools") or []:
+                if isinstance(rule, dict) and fnmatch.fnmatchcase(tool, str(rule.get("match", ""))):
+                    return str(rule.get("tier", "red"))
+            return "red"
+    return None
+
+
+def tools_diff(old: list[dict], new: list[dict]) -> dict[str, list[str]]:
+    """New tools (and of those, the ones Oddboro's rule would not call read-only) and removed tools."""
+    old_names = {str(t.get("name")) for t in old}
+    new_by_name = {str(t.get("name")): t for t in new}
+    added = sorted(set(new_by_name) - old_names)
+    return {
+        "added": added,
+        "added_not_read_only": [n for n in added if not read_only_reachable(new_by_name[n])[0]],
+        "removed": sorted(old_names - set(new_by_name)),
+    }
+
+
+def tool_marks(tools: list[dict]) -> list[dict]:
+    """What may be saved of a tools/list: names and annotations only, never descriptions or schemas."""
+    out = []
+    for t in tools:
+        ann = t.get("annotations") if isinstance(t.get("annotations"), dict) else {}
+        out.append({"name": str(t.get("name")), "annotations": {k: ann[k] for k in ("readOnlyHint", "destructiveHint") if k in ann}})
+    return out

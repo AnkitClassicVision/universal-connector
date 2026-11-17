@@ -35,7 +35,7 @@ Atlassian's issue tracker. Agents usually search and read issues, sprints and bo
 Read the current user, then search for one issue.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection jira --tool <search issues tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection jira --tool <search issues tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

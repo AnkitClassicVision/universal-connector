@@ -25,13 +25,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kit.oddboro import facts, parse  # noqa: E402
+from kit.core import default_runner, platform_name  # noqa: E402
+from kit.oddboro import facts, keyring_preflight, parse  # noqa: E402
 from kit.report import guard  # noqa: E402
+
+
+def make_opener() -> urllib.request.OpenerDirector:
+    """No proxy (HTTP_PROXY and friends are ignored): this only ever asks the local office."""
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def http_get(url: str, timeout: float = 5.0) -> tuple[int, bytes]:
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:  # noqa: S310 - loopback only
+        with make_opener().open(url, timeout=timeout) as resp:  # loopback only
             return resp.status, resp.read(100_000)
     except urllib.error.HTTPError as exc:
         return exc.code, b""
@@ -74,14 +80,24 @@ def detect(version: str | None, port: int, checkout: str | None, getter=http_get
 def main(argv=None, getter=http_get, describe=git_describe, out=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", dest="given", help="the version the Setup window shows")
-    ap.add_argument("--port", type=int, default=int(os.environ.get("ODDBORO_PORT", "4500")))
+    ap.add_argument("--port", help="the office's port (default: ODDBORO_PORT, else 4500)")
     ap.add_argument("--checkout", help="an Oddboro source checkout, for git describe --tags")
+    ap.add_argument("--preflight", action="store_true", help="also check the system secret store Oddboro keeps keys in")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     out = out or sys.stdout
-    how, text = detect(a.given, a.port, a.checkout, getter, describe)
+    raw_port = (a.port or os.environ.get("ODDBORO_PORT") or "4500").strip()
+    if not raw_port.isdigit() or not 0 < int(raw_port) < 65536:
+        sys.stderr.write("error: ODDBORO_PORT (or --port) must be a port number such as 4500\n")
+        return 2
+    how, text = detect(a.given, int(raw_port), a.checkout, getter, describe)
     f = facts(parse(text))
     f["found_by"] = how
+    if a.preflight:
+        import shutil
+
+        ready, why = keyring_preflight(platform_name(), shutil.which, default_runner, dict(os.environ))
+        f["keyring_ready"], f["keyring"] = ready, why
     if a.json:
         out.write(guard(json.dumps(f, indent=2) + "\n"))
     else:

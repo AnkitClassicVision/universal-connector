@@ -39,7 +39,7 @@ Reading a secret's value is red, because it would show the secret.
 Run the caller identity read, which shows the signed-in role name.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection aws --tool <caller identity tool> --args '{}' --auth-kind oauth --whoami-tool <caller identity tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection aws --tool <caller identity tool> --args '{}' --auth-kind oauth --whoami-tool <caller identity tool>
 ```
 
 ## Gotchas

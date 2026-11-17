@@ -44,17 +44,30 @@ def test_no_personal_data():
         "/" + "home/", "my" + "bcat", "clin" + "ic", "classic" + "vision", r"\b\d{12}\b",
         r"[a-z0-9-]+\.ts\.net",
     )]
-    allowed_tailnet = re.compile(r"(tailnet-name|example)\.ts\.net")
+    allowed_tailnet = re.compile(r"(tailnet-name|example)\.ts\.net", re.I)
+    copyright_line = "Copyright 2026 " + owner.capitalize() + " Patel"
+    # The one public place the owner's account appears: the install address the owner asked for.
+    install = "github.com/" + owner.capitalize() + "Classic" + "Vision/universal-connector"
     for p, t in texts():
         rel = str(p.relative_to(ROOT))
         for n, line in enumerate(t.splitlines(), 1):
+            if rel == "NOTICE" and line == copyright_line:
+                continue
+            if install in line and rel in ("README.md", "runbooks/build-my-connector/04-door/STAGE.md"):
+                continue
             if owner in line.lower():
-                assert rel == "LICENSE" and line == "Copyright 2026 " + owner.capitalize() + " Patel", f"{rel}:{n}"
+                raise AssertionError(f"{rel}:{n} names the owner outside NOTICE")
             for rx in banned:
                 for m in rx.finditer(line):
                     if rx.pattern.endswith(r"\.ts\.net") and allowed_tailnet.search(m.group(0)):
                         continue
                     raise AssertionError(f"{rel}:{n} matches a personal-data rule")
+
+
+def test_license_is_the_standard_text_and_notice_holds_the_copyright():
+    import hashlib
+    assert hashlib.sha256((ROOT / "LICENSE").read_bytes()).hexdigest().startswith("cfc7749b96f63bd3")
+    assert (ROOT / "NOTICE").read_text(encoding="utf-8").splitlines()[0] == "Universal Connector"
 
 
 def test_readme_names_every_plugin():

@@ -9,7 +9,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Format
 
-1. **Release**: the door's name, version or tag, and how its checksum or signature was verified.
+1. **Release**: the door's name and tag (`door/` at `v0.1.0`, or the other door used and why), the install command as run, and how the tag or checksum was verified.
 2. **Folders**: where the door, its live manifest and its state live.
 3. **Service**: the service name, how to stop it, start it and see its log; who said yes to installing it.
 4. **Addresses**: the loopback URL; the https route URL if any; the door's host list.

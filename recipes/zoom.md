@@ -37,7 +37,7 @@ Creating a meeting sends invites to other people, so it is red.
 Read the current user, then list one meeting.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection zoom --tool <list meetings tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection zoom --tool <list meetings tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

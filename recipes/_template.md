@@ -41,7 +41,7 @@ When unsure, red.
 Name one read call that proves the credential works without showing it. Prefer a "signed in as <account name>" read when the API offers one.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection <name> --tool <read tool> --args '{}' --auth-kind <api-key|oauth|service-account|browser-session>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection <name> --tool <read tool> --args '{}' --auth-kind <api-key|oauth|service-account|browser-session>
 ```
 
 Add `--whoami-tool <tool>` when a who-am-I read exists.

@@ -13,6 +13,7 @@ It does not say how the work is tested. Keep tests out of this file.
 
 ## Must be true
 
+- `connect.md` has a **Method** line: GrokBot's own command, "shares Claude Code's entry", or "the person, in its settings". The agent never opened a GrokBot config.
 - If GrokBot shares Claude Code's entry, that is stated plainly, with what revoking Claude Code's key does to GrokBot.
 - If GrokBot has its own entry, it has its own door key, a backup existed before the change, and its smoke result is recorded.
 - No upstream key sits in any GrokBot config.

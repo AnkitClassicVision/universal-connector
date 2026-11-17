@@ -11,7 +11,10 @@ and the options guide all read this table, so they cannot drift apart.
 from __future__ import annotations
 
 import json
+import re
+import shlex
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 DEFAULT_URL = "http://127.0.0.1:8765/mcp"
 DEFAULT_NAME = "door"
@@ -168,6 +171,70 @@ def limits_table() -> str:
     return "\n".join(rows) + "\n"
 
 
+NAME_RULE = re.compile(r"[A-Za-z0-9_-]{1,40}")
+ENV_RULE = re.compile(r"[A-Z_][A-Z0-9_]{0,63}")
+URL_BAD = re.compile(r"[\s\"'\\<>`$;|(){}]")  # '&' and '?' are fine: every output quotes or escapes the URL
+
+
+def entry_problem(url: str, key_env: str, name: str) -> str | None:
+    """A fixed message when an argument is not safe to put in a config or a shell line. Never echoes input."""
+    try:
+        parts = urlsplit(url)
+        parts.port  # noqa: B018 - raises on a bad port
+    except ValueError:
+        return "the URL is not valid"
+    if URL_BAD.search(url) or parts.scheme not in ("http", "https") or not parts.hostname or "@" in parts.netloc:
+        return "the URL must be http or https, with a host, no user info, and no spaces, quotes or shell characters"
+    if NAME_RULE.fullmatch(name) is None:
+        return "the name may hold only letters, digits, '-' and '_' (40 at most)"
+    if ENV_RULE.fullmatch(key_env) is None:
+        return "the variable name must look like DOOR_KEY: capitals, digits and '_'"
+    return None
+
+
+TOML_BARE = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def toml_table(name: str, body: dict) -> str:
+    """A TOML table with every string escaped as a basic string (JSON escapes are valid TOML ones)."""
+    key = name if TOML_BARE.fullmatch(name) else json.dumps(name)
+    lines = [f"[mcp_servers.{key}]"]
+    for k, v in body.items():
+        lines.append(f"{k} = {json.dumps(v) if isinstance(v, str) else str(v).lower() if isinstance(v, bool) else v}")
+    return "\n".join(lines) + "\n"
+
+
+PLAIN_KEY = {"zed", "goose", "openmausbot", "cline", "other"}  # harnesses that keep the door key in their own config
+
+
+def entry_body(harness: str, url: str, key_env: str, name: str, read_timeout: int, key: str | None = None) -> dict:
+    """The structured entry for one harness. `key` is the door key itself, only for harnesses that keep it in
+    their config (PLAIN_KEY), and only in add_entry's own process; everyone else gets a reference."""
+    ref = "${" + key_env + "}"
+    if harness == "claude-code":
+        return {"type": "http", "url": url, "headers": {"Authorization": f"Bearer {ref}"}}
+    if harness == "codex":
+        return {"url": url, "bearer_token_env_var": key_env, "tool_timeout_sec": read_timeout, "startup_timeout_sec": 20}
+    if harness == "cursor":
+        return {"url": url, "headers": {"Authorization": f"Bearer {key}" if key else "Bearer ${env:" + key_env + "}"}}
+    if harness == "windsurf":
+        return {"serverUrl": url, "headers": {"Authorization": f"Bearer {key}" if key else "Bearer ${env:" + key_env + "}"}}
+    if harness == "vscode":
+        return {"type": "http", "url": url, "headers": {"Authorization": "Bearer ${input:" + name + "-key}"}}
+    if harness == "cline":
+        return {"url": url, "type": "streamableHttp", "headers": {"Authorization": f"Bearer {key}"}, "timeout": read_timeout}
+    if harness == "zed":
+        return {"url": url, "headers": {"Authorization": f"Bearer {key}"}}
+    if harness == "goose":
+        return {"name": name, "type": "streamable_http", "uri": url, "headers": {"Authorization": f"Bearer {key}"},
+                "enabled": True, "timeout": read_timeout}
+    if harness == "hermes":
+        return {"url": url, "headers": {"Authorization": f"Bearer {ref}"}, "timeout": read_timeout}
+    if harness == "openmausbot":
+        return {"type": "http", "url": url, "headers": {"Authorization": f"Bearer {key}"}, "enabled": True}
+    raise KeyError(harness)
+
+
 def entry(harness: str, url: str = DEFAULT_URL, key_env: str = "DOOR_KEY", name: str = DEFAULT_NAME,
           read_timeout: int = 120) -> str:
     """The config entry text for one harness. It never holds a key: a reference or a placeholder."""
@@ -175,8 +242,8 @@ def entry(harness: str, url: str = DEFAULT_URL, key_env: str = "DOOR_KEY", name:
     ref = "${" + key_env + "}"
     if harness == "claude-code":
         body = {"type": "http", "url": url, "headers": {"Authorization": f"Bearer {ref}"}}
-        return (json.dumps({"mcpServers": {name: body}}, indent=2) + "\n\n# or, user scope (single quotes keep ${...} literal):\n"
-                f"claude mcp add-json --scope user {name} '{json.dumps(body)}'\n"
+        return (json.dumps({"mcpServers": {name: body}}, indent=2) + "\n\n# or, user scope (the quoting keeps ${...} literal):\n"
+                f"claude mcp add-json --scope user {shlex.quote(name)} {shlex.quote(json.dumps(body))}\n"
                 f"# read timeout: set MCP_TOOL_TIMEOUT={read_timeout * 1000} in the environment Claude Code starts with\n")
     if harness == "claude-desktop":
         body = {"command": "<path to your bridge wrapper>", "args": [url],
@@ -184,8 +251,7 @@ def entry(harness: str, url: str = DEFAULT_URL, key_env: str = "DOOR_KEY", name:
         return (json.dumps({"mcpServers": {name: body}}, indent=2)
                 + "\n# The wrapper reads the key from DOOR_KEY_FILE at start and adds the Authorization header.\n")
     if harness == "codex":
-        return (f"[mcp_servers.{name}]\nurl = \"{url}\"\nbearer_token_env_var = \"{key_env}\"\n"
-                f"tool_timeout_sec = {read_timeout}\nstartup_timeout_sec = 20\n")
+        return toml_table(name, entry_body("codex", url, key_env, name, read_timeout))
     if harness == "cursor":
         return json.dumps({"mcpServers": {name: {"url": url, "headers": {"Authorization": "Bearer ${env:" + key_env + "}"}}}}, indent=2) + "\n"
     if harness == "windsurf":
@@ -196,12 +262,12 @@ def entry(harness: str, url: str = DEFAULT_URL, key_env: str = "DOOR_KEY", name:
         return json.dumps(body, indent=2) + "\n"
     if harness == "zed":
         return json.dumps({"context_servers": {name: {"url": url, "headers": {"Authorization": f"Bearer {paste}"}}}}, indent=2) + "\n"
-    if harness == "goose":
-        return (f"extensions:\n  {name}:\n    name: {name}\n    type: streamable_http\n    uri: {url}\n"
-                f"    headers:\n      Authorization: Bearer {paste}\n    enabled: true\n    timeout: {read_timeout}\n")
-    if harness == "hermes":
-        return (f"mcp_servers:\n  {name}:\n    url: {url}\n    headers:\n      Authorization: \"Bearer {ref}\"\n"
-                f"    timeout: {read_timeout}\n")
+    if harness in ("goose", "hermes"):
+        import yaml
+
+        top = "extensions" if harness == "goose" else "mcp_servers"
+        return yaml.safe_dump({top: {name: entry_body(harness, url, key_env, name, read_timeout, key=paste)}},
+                              sort_keys=False, default_flow_style=False)
     if harness == "openmausbot":
         body = {"type": "http", "url": url, "headers": {"Authorization": f"Bearer {paste}"}, "enabled": True}
         return json.dumps({"mcpServers": {name: body}}, indent=2) + "\n"

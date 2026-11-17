@@ -36,7 +36,7 @@ An issue tracker for product and engineering teams. Agents usually read issues, 
 Read the signed-in user, then one issue.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection linear --tool <read issue tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection linear --tool <read issue tool> --args '{}' --auth-kind oauth --whoami-tool <current user tool>
 ```
 
 ## Gotchas

@@ -16,9 +16,9 @@ Read only what is listed here.
 
 ## Process
 
-1. Follow `build-my-connector` stage `06a-smoke-connections` for every connection in the door's current manifest, with a fresh `smoke` key.
-2. Follow `build-my-connector` stage `06b-smoke-harnesses` for every connected harness, including the canary and revoke check.
-3. Write the same files those stages hand in, under `connections/` and `harnesses/`, plus `resmoke.md` with both summary tables and a list of what changed since the last run.
+1. Follow `build-my-connector` stage `06a-smoke-connections` for every connection in the door's current manifest, with a fresh `smoke` key in a 0600 file.
+2. Follow `build-my-connector` stage `06b-smoke-harnesses` for every connected harness, including the canary and revoke check, with `--baseline-tools <last run's harnesses/<id>-tools.json>` added: it fails when the door now offers a new tool that Oddboro's read-only rule would not call read-only. Each such tool needs a tier in the manifest and the person's yes before it is offered.
+3. Write the same files those stages hand in, under `connections/` and `harnesses/`, plus `resmoke.md` with both summary tables, the new and removed door tools, and a list of what changed since the last run.
 
 ## Output
 

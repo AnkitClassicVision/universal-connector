@@ -14,10 +14,18 @@ The door reads each secret from the vault into memory when a call needs it. The 
 
 ## Moving a key that already sits in a plain file
 
-Prefer a fresh, narrower key from the vendor. If the old key must move, the person runs one command that reads the file and writes the vault, so the value is never printed. For example, on Linux: `secret-tool store --label="<entry>" service universal-connector account <entry> < <the file>`. Then, after the smoke tests pass, they remove the value from the old file and rotate it if it was ever shared.
+Prefer a fresh, narrower key from the vendor: it is the only option that also limits what a leaked old key can do.
+
+If the old key must move, store **one value, never a whole file**. A config or `.env` file holds other keys and settings; storing it whole copies all of them into the vault under one name.
+
+- **A file that holds nothing but the one key** (a single-value key file) may be fed to the store command whole, by the person. For example, on Linux: `secret-tool store --label="<entry>" service universal-connector account <entry> < <the key file>`.
+- **A key inside a larger file** moves with the one-field mover, run by the person: `python tools/move_field.py --file <the file> --field <dot.path.to.the.key> [--strip-bearer] --to <secret-service|pass|gopass|hashicorp-vault> --entry <entry>`. It reads that one field in its own process, checks it is a single text value, and pipes it to the store command on standard input. Run it with `--dry-run` first: it says whether it found one value, without showing it. For stores whose command line would take the value as an argument (macOS Keychain, 1Password, Bitwarden, Windows Credential Manager, AWS), it refuses and points to the app or console instead.
+
+After the smoke tests pass, the person removes the old copy from the file and rotates the key if it was ever shared or committed.
 
 ## Never
 
 - Paste a value into chat, a task card, a commit or a config the agent edits.
 - Put a value on a command line (other users can read command lines).
+- Store a whole config or credential file as one secret.
 - Keep a second copy "just in case".

@@ -36,7 +36,7 @@ CRM writes are red because other people act on these records.
 List one person record.
 
 ```bash
-python tools/smoke_connection.py --url <door url> --key-env DOOR_KEY --connection twenty --tool <list people tool> --args '{}' --auth-kind api-key
+python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --plan <run folder>/02-plan/output/manifest-draft.yaml --connection twenty --tool <list people tool> --args '{}' --auth-kind api-key
 ```
 
 ## Gotchas
