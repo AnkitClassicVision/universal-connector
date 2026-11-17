@@ -1,0 +1,8 @@
+// Zed settings: comments and trailing commas are allowed.
+{
+  "theme": "One Dark",
+  "context_servers": {
+    "git-tools": {"command": {"path": "git-mcp", "args": [], "env": {"GIT_TOKEN": "Qz9FAKEzdv01x"}}},
+    "ext-server": {"source": "extension", "settings": {"api_key": "Qz9FAKEzdv02x"}},
+  },
+}

@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "board": {"type": "http", "url": "https://board.example.com/mcp", "headers": {"X-Api-Key": "Qz9FAKEccv03x"}}
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bridge": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://remote.example.com/mcp", "--header", "Authorization:${AUTH_HEADER}"],
+      "env": {"AUTH_HEADER": "Bearer Qz9FAKEcdv01x"}
+    }
+  }
+}

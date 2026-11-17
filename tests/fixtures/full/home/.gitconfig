@@ -1,0 +1,4 @@
+[user]
+	name = Demo User
+[credential]
+	helper = store

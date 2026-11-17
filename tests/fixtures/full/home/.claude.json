@@ -1,0 +1,16 @@
+{
+  "numStartups": 3,
+  "mcpServers": {
+    "tracker": {"type": "http", "url": "https://tracker.example.com/mcp", "headers": {"Authorization": "Bearer Qz9FAKEccv01x"}},
+    "notes-local": {"command": "npx", "args": ["-y", "notes-mcp"], "env": {"NOTES_TOKEN": "${NOTES_TOKEN}"}},
+    "files": {"command": "/usr/local/bin/files-mcp", "args": ["--root", "/srv/data"]},
+    "hosted-docs": {"type": "http", "url": "https://docs.example.com/mcp"}
+  },
+  "projects": {
+    "@HOME@/work/demo": {
+      "mcpServers": {
+        "wiki": {"type": "sse", "url": "https://wiki.example.com/sse?api_key=Qz9FAKEccv02x"}
+      }
+    }
+  }
+}

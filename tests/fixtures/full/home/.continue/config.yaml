@@ -1,0 +1,14 @@
+name: demo
+version: 0.0.1
+mcpServers:
+  - name: search-api
+    command: npx
+    args: ["-y", "search-api-mcp"]
+    env:
+      SEARCH_KEY: Qz9FAKEcnv01x
+  - name: remote-kb
+    type: streamable-http
+    url: https://kb.example.org/mcp
+    requestOptions:
+      headers:
+        Authorization: "Bearer ${{ secrets.KB_TOKEN }}"

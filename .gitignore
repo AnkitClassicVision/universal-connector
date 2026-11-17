@@ -1,0 +1,19 @@
+runs/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Scan output and run folders never belong in the registry.
+inventory.json
+inventory.md
+!tests/fixtures/**
+
+# The test fixtures are fake configs with planted fake values. They must be committed so the
+# tests can prove that no value leaks. tests/test_repo.py and tools/keyshape.py keep them free
+# of real key shapes. Nothing outside tests/fixtures/ is un-ignored here.
+!tests/fixtures/**/.env
+!tests/fixtures/**/.env.*
+!tests/fixtures/**/.credentials.json

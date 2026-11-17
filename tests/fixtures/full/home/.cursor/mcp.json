@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "design": {"url": "https://design.example.com/mcp", "headers": {"Authorization": "Bearer ${env:DESIGN_TOKEN}"}}
+  }
+}

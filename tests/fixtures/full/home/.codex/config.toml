@@ -1,0 +1,14 @@
+model = "demo-model"
+
+[mcp_servers.issues]
+url = "https://issues.example.com/mcp"
+bearer_token_env_var = "ISSUES_TOKEN"
+
+[mcp_servers.db]
+command = "db-mcp"
+args = ["--dsn-file", "/etc/demo/dsn"]
+env = { DB_PASSWORD = "Qz9FAKEcxv01x" }
+
+[mcp_servers.vaulted]
+command = "op"
+args = ["run", "--", "vaulted-mcp"]

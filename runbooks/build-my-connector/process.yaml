@@ -1,0 +1,80 @@
+id: build-my-connector
+owner: registry-steward
+version: 0.1.0
+status: draft
+# Stage ids that wait for a human yes before they start. [] means decided: none.
+# 'undecided' means nobody has decided yet. Lint keeps flagging it.
+# Set from the owner's brief: each vault write, the service install and each config edit need a yes.
+human_gate: [03-vault, 04-door, 05a-connect-claude-code, 05b-connect-claude-desktop, 05c-connect-codex, 05d-connect-cursor, 05e-connect-windsurf, 05f-connect-vscode, 05g-connect-zed, 05h-connect-goose, 05i-connect-hermes, 05j-connect-mausbot, 05k-connect-oddboro, 05l-connect-grokbot, 05m-connect-other, 05n-carry-skills]
+source: ""
+runs_on: []       # harnesses this has passed its gates on
+requires: [python-3.11, pyyaml, the-door-release, a-vault-of-the-owners-choice]
+depends_on: [skills/handle-secrets, skills/connector-options, skills/connect-harness]
+bounce_cap: 3
+stages:
+  - id: 01a-scan
+    needs: []
+    gate: true
+  - id: 01b-ask
+    needs: []
+    gate: true
+  - id: 02-plan
+    needs: [01a-scan, 01b-ask]
+    gate: true
+  - id: 03-vault
+    needs: [02-plan]
+    gate: false
+  - id: 04-door
+    needs: [02-plan, 03-vault]
+    gate: false
+  - id: 05a-connect-claude-code
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05b-connect-claude-desktop
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05c-connect-codex
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05d-connect-cursor
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05e-connect-windsurf
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05f-connect-vscode
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05g-connect-zed
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05h-connect-goose
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05i-connect-hermes
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05j-connect-mausbot
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05k-connect-oddboro
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05l-connect-grokbot
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05m-connect-other
+    needs: [02-plan, 04-door]
+    gate: false
+  - id: 05n-carry-skills
+    needs: [02-plan]
+    gate: false
+  - id: 06a-smoke-connections
+    needs: [02-plan, 04-door]
+    gate: true
+  - id: 06b-smoke-harnesses
+    needs: [05a-connect-claude-code, 05b-connect-claude-desktop, 05c-connect-codex, 05d-connect-cursor, 05e-connect-windsurf, 05f-connect-vscode, 05g-connect-zed, 05h-connect-goose, 05i-connect-hermes, 05j-connect-mausbot, 05k-connect-oddboro, 05l-connect-grokbot, 05m-connect-other]
+    gate: true
+  - id: 07-handoff
+    needs: [03-vault, 04-door, 05n-carry-skills, 06a-smoke-connections, 06b-smoke-harnesses]
+    gate: false

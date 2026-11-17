@@ -1,0 +1,3 @@
+[mcp_servers.search]
+command = "search-mcp"
+env = { SEARCH_TOKEN = "Qz9FAKEgkv01x" }

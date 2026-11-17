@@ -1,0 +1,32 @@
+id: update-my-connector
+owner: registry-steward
+version: 0.1.0
+status: draft
+# Stage ids that wait for a human yes before they start. [] means decided: none.
+# 'undecided' means nobody has decided yet. Lint keeps flagging it.
+# Set from the owner's brief for build-my-connector: vault writes and config edits need a yes.
+human_gate: [03a-update-connections, 03b-update-harnesses]
+source: ""
+runs_on: []       # harnesses this has passed its gates on
+requires: [python-3.11, pyyaml, a-running-door, the-last-owner-sheet]
+depends_on: [skills/handle-secrets, skills/connector-options, skills/connect-harness, runbooks/build-my-connector]
+bounce_cap: 3
+stages:
+  - id: 01-rescan
+    needs: []
+    gate: true
+  - id: 02-diff
+    needs: [01-rescan]
+    gate: true
+  - id: 03a-update-connections
+    needs: [02-diff]
+    gate: false
+  - id: 03b-update-harnesses
+    needs: [02-diff]
+    gate: false
+  - id: 04-resmoke
+    needs: [03a-update-connections, 03b-update-harnesses]
+    gate: true
+  - id: 05-handoff
+    needs: [02-diff, 03a-update-connections, 03b-update-harnesses, 04-resmoke]
+    gate: false

@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "company-search": {"type": "http", "url": "https://search.example.com/mcp", "headers": {"Authorization": "Bearer ${COMPANY_TOKEN}"}}
+  }
+}

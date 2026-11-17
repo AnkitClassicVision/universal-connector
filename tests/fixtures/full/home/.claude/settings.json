@@ -1,0 +1,4 @@
+{
+  "env": {"SERVICE_API_KEY": "Qz9FAKEccv04x", "MCP_TOOL_TIMEOUT": "120000"},
+  "apiKeyHelper": "/usr/local/bin/key-helper --profile demo"
+}

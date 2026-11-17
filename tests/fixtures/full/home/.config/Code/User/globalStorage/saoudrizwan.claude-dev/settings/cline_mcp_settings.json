@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "browser-lane": {"command": "npx", "args": ["playwright-mcp", "--user-data-dir", "~/.browser-lane/profile"], "timeout": 60}
+  }
+}

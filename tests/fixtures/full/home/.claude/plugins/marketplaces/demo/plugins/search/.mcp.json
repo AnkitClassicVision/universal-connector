@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "plugin-search": {"command": "uvx", "args": ["search-mcp", "--api-key", "Qz9FAKEccv05x"]}
+  }
+}

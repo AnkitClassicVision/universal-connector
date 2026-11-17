@@ -1,0 +1,5 @@
+mcp_servers:
+  mail:
+    command: mail-mcp
+    env:
+      MAIL_PASSWORD: Qz9FAKEhmv02x

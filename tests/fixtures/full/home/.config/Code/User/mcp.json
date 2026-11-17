@@ -1,0 +1,9 @@
+{
+  // VS Code allows comments and trailing commas here.
+  "inputs": [{"type": "promptString", "id": "crm-key", "description": "CRM key", "password": true}],
+  "servers": {
+    "crm": {"type": "http", "url": "https://crm.example.com/mcp", "headers": {"Authorization": "Bearer ${input:crm-key}"}},
+    /* a local server with a literal value */
+    "sheets": {"type": "stdio", "command": "sheets-mcp", "env": {"SHEETS_SECRET": "Qz9FAKEvcv01x"}},
+  },
+}

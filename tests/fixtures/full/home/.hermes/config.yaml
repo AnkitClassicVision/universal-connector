@@ -1,0 +1,7 @@
+model: demo
+mcp_servers:
+  kb:
+    url: https://kb.example.com/mcp
+    headers:
+      Authorization: "Bearer ${KB_TOKEN}"
+    timeout: 120

@@ -1,0 +1,3 @@
+[mcp_servers.office-tools]
+url = "https://tools.example.com/mcp"
+http_headers = { "X-Token" = "Qz9FAKEodv02x" }

@@ -1,0 +1,20 @@
+GOOSE_PROVIDER: demo
+extensions:
+  calendar:
+    name: calendar
+    type: streamable_http
+    uri: https://cal.example.com/mcp
+    headers:
+      Authorization: Bearer Qz9FAKEgsv01x
+    enabled: true
+    timeout: 300
+  memory:
+    name: memory
+    type: builtin
+    enabled: true
+  local-tool:
+    name: local-tool
+    type: stdio
+    cmd: tool-mcp
+    args: []
+    env_keys: [TOOL_KEY]
