@@ -1,0 +1,4 @@
+# Agents are added by `uconnector connect`, one revocable key each. Only a key's hash is stored,
+# in the state folder, never here. `connect` rewrites this file and does not keep comments.
+version: 1
+agents: []

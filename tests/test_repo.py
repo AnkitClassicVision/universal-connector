@@ -10,7 +10,7 @@ from pathlib import Path
 from conftest import ROOT
 from kit import __version__
 from kit.harnesses import HARNESSES, limits_table
-from kit.keyshape import line_hits
+from kit.keyshape import file_line_hits
 from kit.oddboro import version_table
 from kit.plugins import all_plugins
 
@@ -34,7 +34,7 @@ def texts():
 
 
 def test_no_key_shaped_string_anywhere():
-    hits = [(str(p.relative_to(ROOT)), line, rule) for p, t in texts() for line, rule in line_hits(t)]
+    hits = [(str(p.relative_to(ROOT)), line, rule) for p, t in texts() for line, rule in file_line_hits(p.name, t)]
     assert hits == []
 
 
@@ -51,9 +51,9 @@ def test_no_personal_data():
     for p, t in texts():
         rel = str(p.relative_to(ROOT))
         for n, line in enumerate(t.splitlines(), 1):
-            if rel == "NOTICE" and line == copyright_line:
+            if rel in ("NOTICE", "door/NOTICE") and line == copyright_line:
                 continue
-            if install in line and rel in ("README.md", "runbooks/build-my-connector/04-door/STAGE.md"):
+            if install in line and rel in ("README.md", "door/README.md", "runbooks/build-my-connector/04-door/STAGE.md"):
                 continue
             if owner in line.lower():
                 raise AssertionError(f"{rel}:{n} names the owner outside NOTICE")
@@ -62,6 +62,19 @@ def test_no_personal_data():
                     if rx.pattern.endswith(r"\.ts\.net") and allowed_tailnet.search(m.group(0)):
                         continue
                     raise AssertionError(f"{rel}:{n} matches a personal-data rule")
+
+
+def test_the_door_ships_the_same_license_and_notice():
+    for name in ("LICENSE", "NOTICE"):
+        assert (ROOT / "door" / name).read_bytes() == (ROOT / name).read_bytes(), name
+
+
+def test_the_root_test_run_leaves_the_door_tests_to_the_door():
+    """`python -m pytest` here collects `tests/` only; the door's tests run inside `door/`."""
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert config["tool"]["pytest"]["ini_options"]["testpaths"] == ["tests"]
+    door = tomllib.loads((ROOT / "door" / "pyproject.toml").read_text(encoding="utf-8"))
+    assert door["tool"]["pytest"]["ini_options"]["testpaths"] == ["tests"]
 
 
 def test_license_is_the_standard_text_and_notice_holds_the_copyright():

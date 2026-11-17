@@ -11,7 +11,7 @@ Run the door: a tagged release on this machine, listening on loopback, reading i
 | Plan | `<run folder>/02-plan/output/` | The manifest draft, harnesses and door placement |
 | Vault receipt | `<run folder>/03-vault/output/vault-receipt.md` | Which entries exist and which connections still need a sign-in |
 | Door placement | `skills/connector-options/references/door-placement.md` | What the door must do, and route rules |
-| The door's own release notes | The release you install | Install, service, login, doctor and key commands |
+| The door's own release notes | `door/README.md` in the release you install | Install, service, login, doctor and key commands |
 
 Read only what is listed here. This stage is a human yes point: installing a user service needs the person's yes.
 

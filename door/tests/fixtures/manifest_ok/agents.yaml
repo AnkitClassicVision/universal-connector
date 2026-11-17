@@ -1,0 +1,4 @@
+version: 1
+agents:
+  - {name: alpha, scopes: [work], reach: starter}
+  - {name: beta, scopes: [work, personal], reach: full-read, addons: [drafts]}

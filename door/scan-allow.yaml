@@ -1,0 +1,11 @@
+# Files that hold known non-secret matches. `uconnector check` skips only the named rules in the
+# named file. Any other rule still fails. Paths and rule names only. Never put a value here.
+#
+# `check` reads the allow file at the Git top level. Inside the kit repository that is the
+# repository root, whose `scan-allow.yaml` lists the same entries with a `door/` prefix. This
+# file serves the door on its own (its tests and a standalone checkout). Keep both in step:
+# `tests/test_public_tree.py` checks that they are.
+allow:
+  - path: uv.lock
+    rules: [long-hex]
+    why: package hashes in the lock file

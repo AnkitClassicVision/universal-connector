@@ -1,0 +1,51 @@
+# Example connections. Names and vault entry names only, never a value. Every address is fake.
+#
+# Tiers: green = read. yellow = a reversible write such as a draft; needs the drafts add-on.
+# red and black = listed so the refusal is clear, never run. A tool not listed here does not
+# exist for agents.
+version: 1
+connections:
+  # A remote MCP server that takes a key in a header. The key sits in the vault under the
+  # entry name below; the door adds the header itself and never shows the key to an agent.
+  - name: notes
+    kind: mcp-remote
+    upstream: https://notes.example.invalid/mcp
+    auth: {type: header, header: x-api-key, secret: connector/notes/api-key}
+    scopes: [work]
+    reach: starter
+    tools:
+      - {name: search_notes, tier: green, pinned: true}
+      - {name: get_note, tier: green}
+      - {name: delete_note, tier: red}
+    probe: search_notes
+
+  # Gmail for one Google account, through your own Desktop OAuth client. Full-read reach, so a
+  # starter agent never sees it. There is no send tool: a draft is the only write. The whole
+  # sign-in is one vault entry, saved by `uconnector login google --account work`.
+  - name: google_mail_work
+    kind: google
+    auth:
+      type: google-oauth
+      account: work
+      secret: connector/oauth/google-work
+      fields: {email: account}
+    scopes: [work]
+    reach: full-read
+    tools:
+      - {name: gmail_search, tier: green, pinned: true}
+      - {name: gmail_get_message, tier: green}
+      - {name: gmail_create_draft, tier: yellow}
+
+  # The calendar of the same account, from the same sign-in entry. Reads only.
+  - name: google_calendar_work
+    kind: google
+    auth:
+      type: google-oauth
+      account: work
+      secret: connector/oauth/google-work
+      fields: {email: account}
+    scopes: [work]
+    reach: starter
+    tools:
+      - {name: calendar_list_events, tier: green, pinned: true}
+      - {name: calendar_get_event, tier: green}

@@ -66,5 +66,22 @@ def line_hits(text: str) -> list[tuple[int, str]]:
     return out
 
 
+# A `uv.lock` file pins each package by its published SHA-256 and its address on the Python
+# package index. Those two exact shapes are hex that is not a secret. In a file named `uv.lock`,
+# and only there, they are blanked before the rules run. Every other line, every other shape and
+# every other rule in that file is checked as usual.
+_LOCK_HEX = re.compile(
+    r"sha256:[0-9a-f]{64}(?![0-9A-Fa-f])"
+    r"|(?<=files\.pythonhosted\.org/packages/)[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}(?=/)"
+)
+
+
+def file_line_hits(name: str, text: str) -> list[tuple[int, str]]:
+    """`line_hits` for a file called `name`: a `uv.lock` file's package hashes are left out."""
+    if name == "uv.lock":
+        text = _LOCK_HEX.sub("", text)
+    return line_hits(text)
+
+
 def is_key_shaped(text: str) -> bool:
     return bool(rule_hits(text))

@@ -1,0 +1,8 @@
+# The allow file for `uconnector check` (the door in `door/`) when it runs inside this
+# repository: `check` reads the allow file at the Git top level, so paths start with `door/`.
+# Each entry names one file, the rules it may hit, and why. Paths and rule names only.
+# `door/scan-allow.yaml` holds the same entries without the prefix, for the door on its own.
+allow:
+  - path: door/uv.lock
+    rules: [long-hex]
+    why: package hashes in the door's lock file

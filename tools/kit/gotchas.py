@@ -23,7 +23,7 @@ from kit.keyshape import rule_hits
 CURSOR_KEYS = {"nextpagetoken", "nextcursor", "pagetoken", "cursor", "next_page_token", "next_cursor",
                "continuationtoken", "continuation", "nextlink", "@odata.nextlink", "next_page", "starting_after"}
 
-# Oddboro's list, word for word (packages/ledger/src/read-only.ts, CHANGES): 42 words. A read tool with one
+# Oddboro's own list of change words, word for word: 42 words. A read tool with one
 # of them anywhere among its name's words (`get_post`) is left out too: the rule errs toward less.
 CHANGES = frozenset("""
 add append approve archive assign cancel capture clear close comment create delete destroy drop edit exec

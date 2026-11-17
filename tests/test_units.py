@@ -89,7 +89,7 @@ def test_gotchas():
     assert read_limit_ok(1, 5) and not read_limit_ok(4.5, 5)
     assert host_allowed("Door.Example.com", ["door.example.com"]) and not host_allowed("x", [])
 
-# Oddboro's own rule (packages/ledger/src/read-only.ts): readOnlyHint === true, destructiveHint !== true,
+# Oddboro's own read-only rule: readOnlyHint === true, destructiveHint !== true,
 # and no change word among the name's words, split on camelCase and on any non-alphanumeric run.
 @pytest.mark.parametrize("tool,reached", [
     ({"name": "list_items", "annotations": {"readOnlyHint": True}}, True),

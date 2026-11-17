@@ -1,0 +1,15 @@
+.venv/
+.state/
+state/
+out/
+machine.yaml
+!examples/machine.yaml
+__pycache__/
+*.db
+*.key
+*.cred
+*.tfstate*
+*.tfplan
+.pytest_cache/
+.ruff_cache/
+dist/

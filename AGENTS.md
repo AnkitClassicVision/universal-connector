@@ -35,6 +35,7 @@ Every stage follows `skills/handle-secrets/SKILL.md`. In short:
 | `recipes/<service>.md` | How to connect one common service: auth kinds, MCP server, tiers, scopes, smoke test |
 | `tools/` | lint, scaffold, graph, sync, plus the kit: `scan.py`, `smoke_connection.py`, `smoke_harness.py`, `gotchas.py`, `entry.py`, `add_entry.py`, `move_field.py`, `diff_inventory.py`, `keyshape.py`, `oddboro_version.py` |
 | `tests/` | Offline tests on fake fixtures: `python -m pytest -q` |
+| `door/` | The door: its own package, lock file and tests, run inside it with `cd door && uv run pytest -q -m "not live"`. Its guide is `door/README.md` |
 
 ## Load only what you need
 

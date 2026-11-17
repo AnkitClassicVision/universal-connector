@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- A launchd agent for the door. Render it for this machine with uconnector install-service
+     and its print flag. Every path is absolute. The command only prints; loading it is yours. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.uconnector.door</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{INSTALL_DIR}}/uconnector</string>
+    <string>serve</string>
+    <string>--machine-file</string>
+    <string>{{MACHINE_FILE}}</string>
+    <string>--manifest</string>
+    <string>{{MANIFEST_DIR}}</string>
+    <string>--state</string>
+    <string>{{STATE_DIR}}</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--port</string>
+    <string>8765</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>{{MANIFEST_DIR}}</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>Umask</key>
+  <integer>63</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

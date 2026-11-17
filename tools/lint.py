@@ -35,7 +35,9 @@ STATUSES = ("draft", "adopted", "verified", "portable", "retired")
 EARNED = ("verified", "portable")
 REQUIRED_KEYS = ("id", "owner", "version", "status", "human_gate", "runs_on",
                  "requires", "depends_on", "bounce_cap", "stages")
-SKIP_DIRS = {".git", "runs", "__pycache__", "node_modules"}
+# `.venv` is a local, Git-ignored environment (the door's, made by `uv run` in `door/`); its
+# interpreter links never ship, as in keyshape.py and tests/test_repo.py.
+SKIP_DIRS = {".git", "runs", "__pycache__", "node_modules", ".venv"}
 GATE_STUB_MAX_LINES = 25
 MIN_SECRET_CHARS = 30
 MAX_TEXT_BYTES = 1_000_000

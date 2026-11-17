@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "universal-connector"
+version = "0.1.0"
+description = "The door: one loopback MCP front door that holds your connections and gives each agent system one revocable key."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11"
+dependencies = [
+    "mcp==1.26.0",
+    "pydantic>=2,<3",
+    "PyYAML>=6",
+    "httpx>=0.27",
+    "keyring>=25",
+    "google-auth>=2.29",
+    "google-api-python-client>=2.120",
+    "starlette>=0.37",
+    "uvicorn>=0.29",
+]
+
+[project.optional-dependencies]
+aws = [
+    "boto3>=1.34",
+]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+uconnector = "universal_connector.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/universal_connector"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"deploy/systemd/uconnector.service" = "universal_connector/deploy/systemd/uconnector.service"
+"deploy/launchd/local.uconnector.door.plist" = "universal_connector/deploy/launchd/local.uconnector.door.plist"
+"deploy/windows/uconnector-logon-task.xml" = "universal_connector/deploy/windows/uconnector-logon-task.xml"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["tests"]
+markers = [
+    "live: calls real services",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]

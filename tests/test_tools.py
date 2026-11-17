@@ -48,6 +48,36 @@ def test_keyshape_reports_skipped_files_and_fails(tmp_path):
     assert code == 0
 
 
+def test_lint_skips_a_local_virtualenv_but_not_other_links(tmp_path):
+    import lint
+
+    (tmp_path / ".venv" / "bin").mkdir(parents=True)
+    os.symlink(sys.executable, tmp_path / ".venv" / "bin" / "python")
+    os.symlink(sys.executable, tmp_path / "stray-link")
+    (tmp_path / "kept.md").write_text("x\n")
+    seen = [Path(folder) / name for folder, dirs, files in lint.walk(tmp_path) for name in dirs + files]
+    assert tmp_path / "kept.md" in seen and tmp_path / "stray-link" in seen
+    assert not any(".venv" in p.relative_to(tmp_path).parts for p in seen)
+
+
+def test_keyshape_leaves_out_lock_hashes_only_in_a_uv_lock(tmp_path):
+    digest = "sha256:" + "ab" * 32
+    index = "https://files.pythonhosted.org/packages/0a/1b/" + "c" * 60 + "/pkg-1.0-py3-none-any.whl"
+    lock_text = f'wheels = [{{ url = "{index}", hash = "{digest}" }}]\n'
+    (tmp_path / "uv.lock").write_text(lock_text)
+    assert run_keyshape(tmp_path)[0] == 0  # the two lock shapes alone pass
+    other = tmp_path / "notes.txt"
+    other.write_text(lock_text)
+    code, text = run_keyshape(other)
+    assert code == 1 and "notes.txt:1: long-hex" in text  # the same text anywhere else hits
+    other.unlink()
+    for planted in ("x = " + "d" * 40, digest + "ef12", "token: " + SHAPED, "/packages/0a/1b/" + "c" * 60 + "/"):
+        (tmp_path / "uv.lock").write_text(lock_text + planted + "\n")
+        code, text = run_keyshape(tmp_path)
+        assert code == 1 and "uv.lock:2:" in text, planted  # any other shape in a lock still hits
+        assert planted not in text
+
+
 @pytest.mark.parametrize("args", [
     ["--harness", "codex", "--url", "https://door.example.com/mcp'; rm -rf ~"],
     ["--harness", "codex", "--url", "https://user:pw@door.example.com/mcp"],

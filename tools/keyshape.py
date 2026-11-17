@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kit.keyshape import line_hits  # noqa: E402
+from kit.keyshape import file_line_hits  # noqa: E402
 
 SKIP_DIRS = {".git", "__pycache__", ".venv", "node_modules", ".pytest_cache", ".ruff_cache"}
 MAX_BYTES = 5_000_000
@@ -67,7 +67,7 @@ def scan(paths: list[str]) -> tuple[list[tuple[str, int, str]], list[tuple[str, 
         except OSError:
             skipped.append((str(f), "unreadable"))
             continue
-        hits += [(str(f), line, rule) for line, rule in line_hits(text)]
+        hits += [(str(f), line, rule) for line, rule in file_line_hits(f.name, text)]
     return hits, skipped
 
 

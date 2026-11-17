@@ -1,0 +1,29 @@
+# Per-machine settings that never go in the manifest. Copy this file beside your manifest and
+# edit it. Never commit your own copy. Every value here is fake.
+
+# Where the door reads secret values: keyring (the default), aws or memory.
+# keyring: macOS Keychain, Windows Credential Manager, or a Linux Secret Service keyring.
+vault: keyring
+keyring_service: universal-connector
+
+# For vault: aws only. Install the aws extra. No Region is ever assumed.
+# aws_region: eu-west-1
+# aws_profile: door-reader
+
+# The vault entry that holds your own Google Desktop OAuth client JSON, and the scopes that
+# `uconnector login google` asks for. Gmail connections need both Gmail scopes.
+google_client_entry: connector/google/oauth-client
+google_scopes:
+  - https://www.googleapis.com/auth/gmail.readonly
+  - https://www.googleapis.com/auth/gmail.compose
+  - https://www.googleapis.com/auth/calendar.readonly
+
+# The mailbox each sign-in label must be. `login` refuses any other account.
+google_accounts:
+  work: you@example.com
+
+# Extra exact Host values the door accepts: a tailnet route, or a local https proxy on a
+# <name>.localhost host. No wildcards. The door still binds 127.0.0.1 only.
+# door_hosts:
+#   - door.tailnet-name.ts.net:8443
+#   - door.localhost:8443

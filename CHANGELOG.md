@@ -4,6 +4,11 @@ All notable changes to this registry. Versions follow semantic versioning: a new
 
 ## [0.1.0] - unreleased
 
+### The door
+
+- The door joins the repository as `door/`: the `universal_connector` package (`uconnector`), with its own `pyproject.toml`, lock file, tests, examples and service templates, and the same `LICENSE` and `NOTICE`. Its tests run inside `door/`; the root test run still collects `tests/` only.
+- `tools/keyshape.py` and the repository test leave out a `uv.lock` file's package hashes (`sha256:` digests and package-index paths), only in files named `uv.lock`; every other shape there still counts. `tools/lint.py` skips a local `.venv`, as keyshape already did.
+
 ### Security (review fixes before the first release)
 
 - The agent never opens a harness config. New `tools/add_entry.py` adds one door entry in its own process: it backs the config up into the run folder (0700 folder, 0600 file, never beside the config), checks the result keeps every earlier entry, replaces the file atomically and prints only a receipt. Every connect stage uses the harness's own command, `add_entry.py`, or the person.

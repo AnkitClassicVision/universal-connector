@@ -1,0 +1,20 @@
+version: 1
+connections:
+  - name: brain_work
+    kind: mcp-remote
+    upstream: https://example.invalid/mcp
+    auth: {type: header, header: x-brain-key, secret: connector/brain/work-key}
+    scopes: [work]
+    reach: starter
+    tools:
+      - {name: search_thoughts, tier: green, pinned: true}
+      - {name: capture_thought, tier: red}
+    probe: search_thoughts
+  - name: home_brain
+    kind: mcp-remote
+    upstream: https://example.invalid/personal/mcp
+    auth: {type: header, header: x-brain-key, secret: connector/brain/home-key}
+    scopes: [personal]
+    reach: starter
+    tools:
+      - {name: search_thoughts, tier: green}

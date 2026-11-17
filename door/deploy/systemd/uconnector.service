@@ -1,0 +1,18 @@
+# A systemd user unit for the door. Render it for this machine with:
+#   uconnector install-service --print --machine-file ABS --manifest ABS --state ABS
+# Every path is absolute. The command only prints; saving and starting the unit is yours.
+[Unit]
+Description=universal connector door (loopback only)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory={{MANIFEST_DIR}}
+ExecStart="{{INSTALL_DIR}}/uconnector" serve --machine-file "{{MACHINE_FILE}}" --manifest "{{MANIFEST_DIR}}" --state "{{STATE_DIR}}" --host 127.0.0.1 --port 8765
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+UMask=0077
+
+[Install]
+WantedBy=default.target

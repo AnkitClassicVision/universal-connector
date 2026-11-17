@@ -15,6 +15,10 @@ This repo is a **runbook registry**. An agent in Claude Code or Codex reads it a
 uv tool install git+https://github.com/AnkitClassicVision/universal-connector@v0.1.0#subdirectory=door
 ```
 
+## The door
+
+The door is its own Python package, `universal_connector`, with the command `uconnector`. Its guide is [door/README.md](door/README.md): vaults, Oddboro, reload, service files and the safety rules it keeps. It has its own `pyproject.toml`, lock file and tests, which run inside `door/` (see Tests).
+
 ## What you have at the end
 
 - **A running door** on your own machine: a user service on loopback, with an https route only if a harness needs one, reading its secrets from the vault you chose.
@@ -82,9 +86,20 @@ Run `python tools/scan.py --list-sources` for the exact places on your machine. 
 ```bash
 python -m pytest -q        # offline, fixtures only; no network, no real configs
 ruff check tools tests
-python tools/keyshape.py . # no key-shaped string in the repo
+python tools/keyshape.py . # no key-shaped string in the repo (a uv.lock's package hashes excepted)
 python tools/lint.py . --qa ../universal-connector-qa --summary
 ```
+
+The door's tests are separate: the root run collects `tests/` only. Run them inside `door/`:
+
+```bash
+cd door
+uv run pytest -q -m "not live"
+uv run ruff check
+uv run uconnector check --manifest examples/manifest
+```
+
+`uconnector check` scans from the Git top level wherever it starts, and reads the allow file there: the root `scan-allow.yaml` lists the door's entries with a `door/` prefix, and `door/scan-allow.yaml` holds the same entries for the door on its own.
 
 The tests plant distinct fake values in every source and assert that no 8-character slice of any of them reaches the scanner's output, its files, or the smoke tests' output.
 
