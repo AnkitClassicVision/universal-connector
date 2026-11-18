@@ -34,7 +34,7 @@ Read only what is listed here. Oddboro has no config file to change: the person 
 2. **Find the version** as `oddboro.md` says: the Setup window first, then `python tools/oddboro_version.py` (add `--checkout <folder>` for a source run). Below v0.0.6, stop: the person updates Oddboro first. For v0.0.6 or v0.0.7, note each runner's own limits.
 3. **Keyring preflight**: `python tools/oddboro_version.py --version <version> --preflight` on the machine that runs the office. On Linux it checks that `secret-tool` is installed and a Secret Service keyring is running (names only; nothing is read from the store). If not, the person starts and unlocks GNOME Keyring or KWallet first.
 4. **Ask for the yes**: one new service in their Services tab, granted Read only to one Odd they name.
-5. **Key**: the person issues one door key for Oddboro with the door's own command, into a 0600 file.
+5. **Key**: the person issues one door key for Oddboro in their own terminal, into a 0600 file: `uconnector connect oddboro --manifest <folder> --format oddboro --url <https route> --key-file <private path>`. It refuses before changing anything if a tool name would pass 64 characters. Never run it without `--key-file` through an agent: that prints the key.
 6. **Add the service** (the person clicks, you guide): Services tab, "+ Add service", a hosted MCP service. Address: the https route to the door, exact path. Choose "Takes a key". Header name: `Authorization`. The person pastes the bare key; Oddboro adds `Bearer `.
 7. **Save the key** on the Oddboro desk task, pasted by the person, then press **Connect**.
 8. **Check the read-only marks** on the door's tools, then **grant** the service to one Odd, Read only.

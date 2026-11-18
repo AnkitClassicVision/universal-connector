@@ -17,7 +17,7 @@ Read only what is listed here. This stage runs side by side with the connect sta
 
 ## Process
 
-1. Ask the person to issue one door key named `smoke` with the door's own command, written to a file only they can read (mode 600). The agent passes that file's path to the smoke tool, never the key, and never puts a key in its own environment. It is revoked in `07-handoff`.
+1. Ask the person to issue one door key named `smoke` in their own terminal, written to a file only they can read: `uconnector connect smoke --manifest <folder> --key-file <private path>` (never without `--key-file` through an agent: that prints the key). The agent passes that file's path to the smoke tool, never the key, and never puts a key in its own environment. It is revoked in `07-handoff`.
 2. For each connection in the manifest that is not `hosted-not-portable`, run its own test, on its own:
 
    `python tools/smoke_connection.py --url <door url> --key-file <smoke key file> --connection <name> --tool <one green read tool> --args '<small JSON>' --auth-kind <auth kind> --plan <run folder>/02-plan/output/manifest-draft.yaml --json`

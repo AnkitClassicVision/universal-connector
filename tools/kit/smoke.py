@@ -1,8 +1,9 @@
 """Shared parts of the smoke tests: the key, the check list, and safe output.
 
-The key comes from an environment variable or a 0600 file, never from the command
-line (other users can read command lines). It is never printed. Results are
-never printed either: only counts, names, timings and pass or fail.
+The key comes only from a regular 0600 file the person made, read here in this
+process (`--key-file`). It is never taken from the command line, where other users
+can read it, and never printed. Results are never printed either: only counts,
+names, timings and pass or fail.
 """
 
 from __future__ import annotations

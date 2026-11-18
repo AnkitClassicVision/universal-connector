@@ -105,6 +105,20 @@ def test_connection_plan_tiers(tmp_path):
     assert result_of(rep, "read-only before calling") == "FAIL"
 
 
+def test_a_connection_the_plan_does_not_list_is_red(tmp_path):
+    from kit.gotchas import plan_tier
+    plan = {"connections": [{"name": "tracker", "tools": [{"match": "*", "tier": "green"}]}]}
+    assert plan_tier(plan, "tracker__list_projects") == "green"
+    assert plan_tier(plan, "mail__send_message") == "red"  # not in the plan: red, never treated as the door's own
+    assert plan_tier(plan, "guide") is None  # no connection prefix: one of the door's own tools
+    path = tmp_path / "manifest.yaml"
+    path.write_text("connections:\n  - name: tracker\n    tools:\n      - {match: '*', tier: green}\n")
+    tools = [t for t in READ_TOOLS if t["name"] != "tracker__create_issue"] + [
+        {"name": "mail__send_message", "annotations": {"readOnlyHint": True}}]
+    code, rep, _ = harness(FakeDoor(tools=tools), "claude-code", URL, "--plan", str(path))
+    assert code == 1 and result_of(rep, "plan tiers of offered tools") == "FAIL", rep
+
+
 def test_connection_missing_or_loose_key_file_fails_without_calling(tmp_path):
     door = FakeDoor()
     code, rep, _ = conn(door, key_args=["--key-file", str(tmp_path / "none")])

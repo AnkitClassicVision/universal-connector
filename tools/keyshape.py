@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Scan files for key-shaped strings. Prints file, line and rule name, never the text.
 
-  python tools/keyshape.py .                 # every file under the folder, .git skipped
+  python tools/keyshape.py .                 # every file under the folder; .git is left out
   python tools/keyshape.py out/ --quiet      # only the count
 
 Run it over everything you are about to commit or share. Exit 1 when anything matches, or when a
 file could not be checked (a link, a file over 5 MB, an unreadable file); those are listed as skipped.
+Tool folders it does not read (.venv, node_modules, __pycache__, .pytest_cache, .ruff_cache) are
+listed as skipped too and also make the exit 1: scan a clean export (`git archive`) for a pass.
 Text is read as UTF-8, UTF-16 (with a byte-order mark) or Latin-1.
 """
 
@@ -20,18 +22,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from kit.keyshape import file_line_hits  # noqa: E402
 
-SKIP_DIRS = {".git", "__pycache__", ".venv", "node_modules", ".pytest_cache", ".ruff_cache"}
+QUIET_DIRS = {".git"}  # version-control internals: left out without a note
+LISTED_DIRS = {"__pycache__", ".venv", "node_modules", ".pytest_cache", ".ruff_cache"}  # not read, and reported
 MAX_BYTES = 5_000_000
 
 
-def files_under(paths: list[str]):
+def files_under(paths: list[str], skipped: list[tuple[str, str]] | None = None):
     for raw in paths:
         p = Path(raw)
         if p.is_file() or p.is_symlink():
             yield p
             continue
         for dirpath, dirnames, filenames in os.walk(p, followlinks=False):
-            dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+            for d in sorted(dirnames):
+                if d in LISTED_DIRS and skipped is not None:
+                    skipped.append((str(Path(dirpath) / d), f"a {d} folder (not read)"))
+            dirnames[:] = sorted(d for d in dirnames if d not in QUIET_DIRS | LISTED_DIRS)
             for name in sorted(filenames):
                 yield Path(dirpath) / name
 
@@ -52,7 +58,7 @@ def decode(data: bytes) -> str:
 def scan(paths: list[str]) -> tuple[list[tuple[str, int, str]], list[tuple[str, str]]]:
     """(hits, skipped). A file that cannot be checked is reported, never passed silently."""
     hits, skipped = [], []
-    for f in files_under(paths):
+    for f in files_under(paths, skipped):
         try:
             if f.is_symlink():
                 skipped.append((str(f), "a link (not followed)"))

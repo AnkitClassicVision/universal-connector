@@ -48,6 +48,20 @@ def test_keyshape_reports_skipped_files_and_fails(tmp_path):
     assert code == 0
 
 
+def test_keyshape_lists_tool_folders_it_does_not_read(tmp_path):
+    (tmp_path / "clean.txt").write_text("nothing here\n")
+    for folder in (".venv", "node_modules", "__pycache__"):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "inside.txt").write_text("token: " + SHAPED + "\n")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("[core]\n")
+    code, text = run_keyshape(tmp_path)
+    assert code == 1, text  # a folder that was not read is a skip, like any other file it could not check
+    for folder in (".venv", "node_modules", "__pycache__"):
+        assert f"{tmp_path / folder}: skipped, a {folder} folder (not read)" in text
+    assert ".git" not in text and SHAPED not in text and "3 file(s) skipped" in text
+
+
 def test_lint_skips_a_local_virtualenv_but_not_other_links(tmp_path):
     import lint
 

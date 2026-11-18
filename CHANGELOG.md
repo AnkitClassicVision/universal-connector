@@ -2,12 +2,20 @@
 
 All notable changes to this registry. Versions follow semantic versioning: a new runbook stage or a changed deliverable is a minor change; a changed stage structure is a major change. Each runbook also keeps its own `version` in `process.yaml`.
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-11-17
+
+### Known limits (planned for 0.1.1)
+
+- The inventory classifier misses a key-shaped value that sits at an entry's top level or inside a nested `config` block, short `-p`/`--pw=` arguments, and short passwords inside a DSN (connection string). Such keys are not counted as plain-file keys. Treat the scan as a floor, not a full list.
+- The QA repo (`universal-connector-qa`) is private, so `NN.1-qa` gates cannot be graded by others; review against each stage's `deliverable.md` or skip the gate knowingly (README).
+- Windows and macOS have not been run on real machines: the kit's stages for them come from vendor docs, and the door's code paths for them are tested by simulation only.
+- `keyshape.py` run in a working tree lists tool folders (`.venv`, `__pycache__`) as skipped and exits 1; scan a clean export for a pass.
 
 ### The door
 
 - The door joins the repository as `door/`: the `universal_connector` package (`uconnector`), with its own `pyproject.toml`, lock file, tests, examples and service templates, and the same `LICENSE` and `NOTICE`. Its tests run inside `door/`; the root test run still collects `tests/` only.
-- `tools/keyshape.py` and the repository test leave out a `uv.lock` file's package hashes (`sha256:` digests and package-index paths), only in files named `uv.lock`; every other shape there still counts. `tools/lint.py` skips a local `.venv`, as keyshape already did.
+- `tools/keyshape.py` and the repository test leave out a `uv.lock` file's package hashes (`sha256:` digests and package-index paths), only in files named `uv.lock`; every other shape there still counts. `tools/lint.py` skips a local `.venv`. `tools/keyshape.py` no longer skips `.venv`, `node_modules`, `__pycache__` and tool caches silently: it lists each as skipped, and the run exits 1 as for any other skip.
+- Docs: `uconnector connect --key-file <private path>`, run by the person, is the documented way to issue a key; the print-once mode is never used through an agent. A "works on" line, `uv sync --extra dev` before the door's tests, a concrete release check in `04-door` (`git verify-tag v0.1.0`, or the tag's commit sha against the release page), and what to do at a QA gate without the private QA repo.
 
 ### Security (review fixes before the first release)
 
@@ -17,6 +25,7 @@ All notable changes to this registry. Versions follow semantic versioning: a new
 - New `tools/move_field.py` moves one named field into a vault over standard input; a whole file is never stored.
 - `entry.py` validates URLs, names and variable names, quotes the shell line and escapes TOML.
 - The scanner: env and header literals count as inline secrets; `PASS`, `PW` are credential words and `PWD` is not; FIFOs and links are refused without hanging; YAML aliases are refused; look paths are redacted; hidden ids are stable (owner-only salt); `--door-url` marks harnesses' own plain-text door keys as expected; Bitwarden no longer runs `bw list items`.
+- A plan tier check treats a `<connection>__<tool>` whose connection the plan does not list as red (a failure), never as one of the door's own tools. A finding's `detail` (for example a gcloud credentials `type`) is shown in a code span like every other scanned string.
 - `keyshape.py` decodes UTF-16 and Latin-1 and exits non-zero on any file it skipped. `sync.py --force` moves the old folder aside instead of deleting it. Output files refuse links and are owner-only.
 
 ### Changed

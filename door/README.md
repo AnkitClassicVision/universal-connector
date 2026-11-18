@@ -12,6 +12,9 @@ Three stores:
 - Local state: a per-user folder, owner-only. Key hashes, the audit log, the pause flag and the
   reload counter. Only the SHA-256 of each agent key is stored.
 
+Works on: Linux, tested. macOS and Windows: their code paths are tested by simulation in the test
+suite, not on real machines yet.
+
 ## Install
 
 Python 3.11 or newer, through [uv](https://docs.astral.sh/uv/):
@@ -47,9 +50,12 @@ The door lives in the `door/` folder of that repository. The command is `uconnec
    - memory: an empty store, for a dry run. Every entry reads as missing.
 3. Check the manifest: `uconnector check --manifest <your manifest folder>`.
 4. Run the door in the foreground: `uconnector serve --manifest <folder> --machine-file <file>`.
-5. Connect an agent system: `uconnector connect <name> --manifest <folder> --reach starter
-   --scopes work`. It prints the config entry with the key once. `--key-file <path>` writes the
-   key to a new owner-only file instead.
+5. Connect an agent system, yourself, in your own terminal:
+   `uconnector connect <name> --manifest <folder> --reach starter --scopes work --key-file <private path>`.
+   It writes the new key to a new owner-only file at that path and prints the config entry
+   without it. This is the default way. Without `--key-file`, `connect` prints the key on screen
+   once: use that only in your own terminal, and never through an agent, because the key would
+   land in the agent's context and logs.
 6. Check the connections: `uconnector doctor --manifest <folder> --machine-file <file>`.
 
 `--state` is optional everywhere. The default is a per-user folder:
@@ -80,7 +86,9 @@ The signed-in mailbox must match `google_accounts.<label>` in the machine file.
 
 ## Oddboro
 
-`uconnector connect <name> --format oddboro --url https://<host>/mcp ...`
+`uconnector connect <name> --manifest <folder> --format oddboro --url https://<host>/mcp --key-file <private path>`,
+run by you in your own terminal, as in step 5 above. Paste the key from that file into Oddboro's
+own key field yourself.
 
 - The agent sees the 5 fixed tools only. `--pinned` shows pinned tools too.
 - Each call gets 40 seconds in total, retry included (`call_timeout_s: 40`), inside Oddboro's

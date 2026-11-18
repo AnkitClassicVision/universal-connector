@@ -104,7 +104,8 @@ def host_allowed(route_host: str, door_hosts: list[str]) -> bool:
 def plan_tier(manifest: dict, tool_name: str) -> str | None:
     """The plan's tier for a door tool named `<connection>__<tool>`: the first matching rule, else red.
 
-    None when the name does not start with a connection in the plan (one of the door's own tools).
+    A connection the plan does not list is red too. None only for a name with no `<connection>__`
+    prefix, which is one of the door's own tools (guide, find_read_tools, call_read_tool).
     """
     conn, sep, tool = str(tool_name).partition("__")
     if not sep:
@@ -115,7 +116,7 @@ def plan_tier(manifest: dict, tool_name: str) -> str | None:
                 if isinstance(rule, dict) and fnmatch.fnmatchcase(tool, str(rule.get("match", ""))):
                     return str(rule.get("tier", "red"))
             return "red"
-    return None
+    return "red"
 
 
 def tools_diff(old: list[dict], new: list[dict]) -> dict[str, list[str]]:

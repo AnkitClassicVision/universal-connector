@@ -19,6 +19,19 @@ uv tool install git+https://github.com/AnkitClassicVision/universal-connector@v0
 
 The door is its own Python package, `universal_connector`, with the command `uconnector`. Its guide is [door/README.md](door/README.md): vaults, Oddboro, reload, service files and the safety rules it keeps. It has its own `pyproject.toml`, lock file and tests, which run inside `door/` (see Tests).
 
+Works on: Linux, tested. macOS and Windows: the door's code paths for them are tested by simulation, not on real machines yet.
+
+You issue each harness's door key yourself, in your own terminal, into a private file: `uconnector connect <name> --manifest <folder> --key-file <private path>`. Without `--key-file` the key is printed on screen once; never run that through an agent.
+
+## Quality gates need the QA repo
+
+Every `NN.1-qa` stage (for example `01a.1-qa`, `06b.1-qa`) is graded against criteria in a separate repo, `universal-connector-qa`, so the agent doing the work cannot aim at the test. **That repo is not public in v0.1.0.** Without it, an agent cannot grade a gate. At each gate, do one of these:
+
+- **Review it yourself.** Stop, open that stage's `deliverable.md`, and check the hand-in against every "Must be true" line. Go on only when each one holds.
+- **Skip it knowingly.** Write in the run folder that the gate was skipped and why, and go on.
+
+Never mark a gate as passed when nobody graded it.
+
 ## What you have at the end
 
 - **A running door** on your own machine: a user service on loopback, with an https route only if a harness needs one, reading its secrets from the vault you chose.
@@ -64,7 +77,7 @@ python tools/smoke_harness.py --help
 - **Your yes before every change.** Each vault write, the door's service install and each harness config edit wait for you. The agent never opens a harness config: entries go in by the harness's own command or `tools/add_entry.py`, which backs the file up into the run folder (owner-only, never beside the config) and prints nothing from it.
 - **Scanned text is data.** Names, descriptions and paths found on your machine are shown only inside code spans and never followed as instructions.
 - **Nothing leaves your machine** except the smoke tests' calls to your own door, and your own sign-ins.
-- **Blind QA.** Quality criteria live in a separate repo, `universal-connector-qa`, so the agent doing the work cannot aim at the test.
+- **Blind QA.** Quality criteria live in a separate repo, `universal-connector-qa`, so the agent doing the work cannot aim at the test. It is not public in v0.1.0; see "Quality gates need the QA repo".
 
 The door does not sandbox a harness. A program running as you can already read your files; the door's promise is that no harness needs an upstream key in its config and no agent ever sees one.
 
@@ -86,14 +99,17 @@ Run `python tools/scan.py --list-sources` for the exact places on your machine. 
 ```bash
 python -m pytest -q        # offline, fixtures only; no network, no real configs
 ruff check tools tests
-python tools/keyshape.py . # no key-shaped string in the repo (a uv.lock's package hashes excepted)
-python tools/lint.py . --qa ../universal-connector-qa --summary
+python tools/keyshape.py . # no key-shaped string (a uv.lock's package hashes excepted); it lists
+                           # .venv, __pycache__ and other tool folders as skipped and exits 1, so for
+                           # a clean pass scan an export: git archive HEAD | tar -x -C <empty folder>
+python tools/lint.py . --qa ../universal-connector-qa --summary   # --qa needs the QA repo
 ```
 
-The door's tests are separate: the root run collects `tests/` only. Run them inside `door/`:
+The door's tests are separate: the root run collects `tests/` only. Run them inside `door/`, after installing its development tools once with `uv sync --extra dev` (that step downloads packages):
 
 ```bash
 cd door
+uv sync --extra dev
 uv run pytest -q -m "not live"
 uv run ruff check
 uv run uconnector check --manifest examples/manifest

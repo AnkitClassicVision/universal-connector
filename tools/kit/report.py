@@ -126,12 +126,12 @@ def markdown(inv: dict[str, Any]) -> str:
               "| Name | Source | Location | Kind | Transport | Host | Key fields | Key location | Auth | Plain file | How to add it as a connector |",
               "|---|---|---|---|---|---|---|---|---|---|---|"]
     for f in inv["findings"]:
-        how = f["how_to_add"] + (f" ({f['detail']})" if f["detail"] else "")
+        how = _cell(f["how_to_add"]) + (f" ({_data(f['detail'])})" if f["detail"] else "")  # detail holds scanned text
         lines.append("| " + " | ".join([
             _data(f["name"]), _cell(f["source"]), _data(f["location"]), _cell(f["kind"]), _data(f["transport"]),
             _data(f["host"]), _data(f["key_fields"]), _cell(f["key_where"]), _cell(f["auth_kind"]),
             "yes" if f["plain_file"] and not f.get("door_entry") else ("expected" if f.get("door_entry") else "no"),
-            _cell(how)]) + " |")
+            how]) + " |")
     lines += ["", "## Skills", "", "| Name | Harness | Location | Class | Next step | Description |", "|---|---|---|---|---|---|"]
     for s in inv["skills"]:
         lines.append("| " + " | ".join([_data(s["name"]), _cell(s["harness"]), _data(s["location"]), _cell(s["class"]),
